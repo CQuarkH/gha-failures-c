@@ -14,7 +14,7 @@ Ejemplo de Uso: Visualización de Runners como cuadrados
 | ghRunnersCollection |
 
 ghRunnersCollection := GHRunnerCollection new.
-ghRunnersCollection loadRunnersFromDir: '\\wsl.localhost\Ubuntu\home\cquark\failures\fastai_fastai' . 
+ghRunnersCollection loadRunnersFromDir: 'RUTA_A_LOS_RUNNERS' . 
 
 ghRunnersCollection workflowHotspotView . "visualización de runners agrupados por workflows"
 
