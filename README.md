@@ -5,16 +5,20 @@ Metacello new
     baseline: 'GHFailures';
     load.
 ```
+## Ejemplo de Uso
 
-Ejemplo de Uso: Visualización de Runners como cuadrados
-- Alto: Tiempo de Ejecución
-- Ancho: Número de Jobs
+Para cargar los Runners, se debe utilizar el script `scrap_formated_runs.py`, de la siguiente manera:
+```
+python3 scrap_formated_runs.py REPO OWNER --individual --token TOKEN_GH --max-runs 300 --no-logs
+
+```
+Luego de lo anterior, para visualizarlos, se puede utilizar lo siguiente:
 
 ```
 | ghRunnersCollection |
 
 ghRunnersCollection := GHRunnerCollection new.
-ghRunnersCollection loadRunnersFromDir: 'RUTA_A_LOS_RUNNERS' . 
+ghRunnersCollection loadRunnersFromDir: 'RUTA_A_LOS_RUNNERS_EXTRAIDOS' . 
 
 ghRunnersCollection workflowHotspotView . "visualización de runners agrupados por workflows"
 
