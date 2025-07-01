@@ -4,3 +4,19 @@ Metacello new
     githubUser: 'CQuarkH' project: 'gha-failures-c' commitish: 'master' path: 'src';
     baseline: 'GHFailures';
     load.
+```
+
+Ejemplo de Uso: Visualización de Runners como cuadrados
+- Alto: Tiempo de Ejecución
+- Ancho: Número de Jobs
+
+```
+| ghRunnersCollection |
+
+ghRunnersCollection := GHRunnerCollection new.
+ghRunnersCollection loadRunnersFromDir: '\\wsl.localhost\Ubuntu\home\cquark\failures\fastai_fastai' . 
+
+ghRunnersCollection workflowHotspotView . "visualización de runners agrupados por workflows"
+
+ghRunnersCollection hotspotViewByActor . "visualización de runners agrupados por actor/usuario"
+```
