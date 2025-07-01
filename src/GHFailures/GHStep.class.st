@@ -11,8 +11,8 @@ Class {
 		'log',
 		'workflowCode'
 	],
-	#category : 'TestV1',
-	#package : 'TestV1'
+	#category : 'GHFailures',
+	#package : 'GHFailures'
 }
 
 { #category : 'creation' }
