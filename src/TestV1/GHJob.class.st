@@ -14,6 +14,7 @@ Class {
 		'htmlUrl',
 		'runnerName',
 		'runnerGroupName',
+		'runAttempt',
 		'labels',
 		'steps',
 		'fullLog'
@@ -49,7 +50,13 @@ GHJob class >> fromDictionary: dict [
         labels:           (dict at: 'labels');
 		  steps: 				 (GHStep fromDictArray: (dict at: 'steps'));
 		  fullLog:          (dict at: 'log' ifAbsent: '');
+		  runAttempt:       (dict at: 'run_attempt');
         yourself.
+]
+
+{ #category : 'accessing' }
+GHJob >> completedAt [
+	^ completedAt 
 ]
 
 { #category : 'accessing' }
@@ -70,6 +77,11 @@ GHJob >> conclusion: aString [
 { #category : 'accessing' }
 GHJob >> createdAt: aDate [
 	createdAt := aDate
+]
+
+{ #category : 'public' }
+GHJob >> executionTime [
+	^ (self completedAt - self startedAt) / 1 second
 ]
 
 { #category : 'accessing' }
@@ -108,13 +120,33 @@ GHJob >> nodeId: anInteger [
 ]
 
 { #category : 'accessing' }
+GHJob >> runAttempt [ 
+	^ runAttempt .
+]
+
+{ #category : 'accessing' }
+GHJob >> runAttempt: aInteger [
+	runAttempt := aInteger 
+]
+
+{ #category : 'accessing' }
 GHJob >> runnerName: aString [
 	runnerName := aString
 ]
 
 { #category : 'accessing' }
+GHJob >> startedAt [
+	^ startedAt 
+]
+
+{ #category : 'accessing' }
 GHJob >> startedAt: aDate [
 	startedAt := aDate
+]
+
+{ #category : 'accessing' }
+GHJob >> status [
+	^ status
 ]
 
 { #category : 'accessing' }

@@ -31,6 +31,11 @@ Actor >> id: anInteger [
 ]
 
 { #category : 'accessing' }
+Actor >> login [
+	^ login.
+]
+
+{ #category : 'accessing' }
 Actor >> login: aString [
 	login := aString
 ]

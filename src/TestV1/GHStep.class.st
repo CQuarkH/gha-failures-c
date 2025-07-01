@@ -40,6 +40,11 @@ GHStep class >> fromDictionary: dict [
 ]
 
 { #category : 'accessing' }
+GHStep >> completedAt [
+	^ completedAt.
+]
+
+{ #category : 'accessing' }
 GHStep >> completedAt: aDate [
 	completedAt := aDate
 ]
@@ -52,6 +57,11 @@ GHStep >> conclusion [
 { #category : 'accessing' }
 GHStep >> conclusion: aString [
 	conclusion := aString
+]
+
+{ #category : 'accessing' }
+GHStep >> log [
+	^ log.
 ]
 
 { #category : 'accessing' }
@@ -70,8 +80,18 @@ GHStep >> name: aString [
 ]
 
 { #category : 'accessing' }
+GHStep >> number [
+	^ number.
+]
+
+{ #category : 'accessing' }
 GHStep >> number: anInteger [
 	number := anInteger
+]
+
+{ #category : 'accessing' }
+GHStep >> startedAt [
+	^ startedAt.
 ]
 
 { #category : 'accessing' }
@@ -80,8 +100,18 @@ GHStep >> startedAt: aDate [
 ]
 
 { #category : 'accessing' }
+GHStep >> status [
+	^ status .
+]
+
+{ #category : 'accessing' }
 GHStep >> status: aString [
 	status := aString
+]
+
+{ #category : 'accessing' }
+GHStep >> workflowCode [
+	^ workflowCode .
 ]
 
 { #category : 'accessing' }

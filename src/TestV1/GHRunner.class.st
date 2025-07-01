@@ -62,6 +62,11 @@ GHRunner class >> fromDictionary: dict [
 ]
 
 { #category : 'accessing' }
+GHRunner >> actor [
+    ^ actor.
+]
+
+{ #category : 'accessing' }
 GHRunner >> actor: anActor [
     "Sólo asigna si es un Actor (o subclase)"
     (anActor isKindOf: Actor)
@@ -87,6 +92,11 @@ GHRunner >> conclusion [
 { #category : 'accessing' }
 GHRunner >> conclusion: aString [
     conclusion := aString.
+]
+
+{ #category : 'public' }
+GHRunner >> createdAt [
+    ^ createdAt.
 ]
 
 { #category : 'accessing' }
