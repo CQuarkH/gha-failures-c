@@ -7,6 +7,7 @@ Class {
 
 { #category : 'spec protocol' }
 BaselineOfGHFailures >> baseline: spec [
+    <baseline>
     spec for: #'common' do: [ 
         "Package principal"
         spec package: 'GHFailures'.
