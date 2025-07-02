@@ -16,12 +16,9 @@ BaselineOfGHFailures >> baseline: spec [
         spec baseline: 'NeoJSON' with: [ 
             spec repository: 'github://svenvc/NeoJSON/repository' ].
         
-        spec baseline: 'Roassal3' with: [ 
-            spec repository: 'github://ObjectProfile/Roassal3/src' ].
-        
         "Configurar dependencias del package"
         spec package: 'GHFailures' with: [
-            spec requires: #('NeoJSON' 'Roassal3') ].
+            spec requires: #('NeoJSON') ].
         
         "Grupos de carga"
         spec  
