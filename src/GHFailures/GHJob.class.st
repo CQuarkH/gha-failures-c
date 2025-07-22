@@ -25,11 +25,19 @@ Class {
 
 { #category : 'creation' }
 GHJob class >> fromDictArray: dicts [
-    "Dada una colección de diccionarios, devuelve una OrderedCollection de GHJob"
     | result |
     result := OrderedCollection new.
     dicts do: [ :dict |
-        result add: (self fromDictionary: dict) ].
+        | conclusion |
+        conclusion := dict at: 'conclusion' ifAbsent: [ nil ].
+        
+        "Solo agregar si conclusion no es nulo y no está vacío"
+        ((conclusion notNil) and: [
+            (conclusion asString trim isEmpty) not
+        ]) ifTrue: [
+            result add: (self fromDictionary: dict)
+        ]
+    ].
     ^ result.
 ]
 

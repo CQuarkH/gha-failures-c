@@ -60,6 +60,11 @@ GHStep >> conclusion: aString [
 ]
 
 { #category : 'accessing' }
+GHStep >> executionTime [
+	^ (self completedAt - self startedAt) / 1 second
+]
+
+{ #category : 'accessing' }
 GHStep >> log [
 	^ log.
 ]

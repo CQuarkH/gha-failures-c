@@ -14,6 +14,18 @@ Class {
 }
 
 { #category : 'instance creation' }
+GHRunAttempt class >> fromDictArray: dictArray [
+    "Devuelve una OrderedCollection de GHRunAttempt instanciados
+     a partir de un Array de diccionarios JSON."
+    | attempts |
+    attempts := OrderedCollection new.
+    dictArray do: [:eachDict |
+        attempts add: (self fromDictionary: eachDict)
+    ].
+    ^ attempts
+]
+
+{ #category : 'instance creation' }
 GHRunAttempt class >> fromDictionary: dict [
     ^ self new
         runAttempt:     (dict at: 'run_attempt');
@@ -27,8 +39,44 @@ GHRunAttempt class >> fromDictionary: dict [
 ]
 
 { #category : 'accessing' }
+GHRunAttempt >> conclusion [
+	^ conclusion.
+]
+
+{ #category : 'accessing' }
 GHRunAttempt >> conclusion: aString [
 	conclusion := aString
+]
+
+{ #category : 'public' }
+GHRunAttempt >> getAttemptExecutionTime [
+    | startTime endTime |
+    
+    startTime := self runStartedAt.
+    endTime := self updatedAt.
+    
+    (startTime isNil or: [ endTime isNil ]) ifTrue: [ ^ 0 ].
+    
+    "Calcular diferencia en segundos"
+    ^ (endTime asSeconds - startTime asSeconds) max: 0
+]
+
+{ #category : 'public' }
+GHRunAttempt >> getExecutionTime [
+    | startTime endTime |
+    
+    startTime := self runStartedAt.
+    endTime := self updatedAt.
+    
+    (startTime isNil or: [ endTime isNil ]) ifTrue: [ ^ 0 ].
+    
+    "Calcular diferencia en segundos"
+    ^ (endTime asSeconds - startTime asSeconds) max: 0
+]
+
+{ #category : 'accessing' }
+GHRunAttempt >> jobs [
+	^ jobs.
 ]
 
 { #category : 'accessing' }
@@ -37,8 +85,18 @@ GHRunAttempt >> jobs: aCollection [
 ]
 
 { #category : 'accessing' }
+GHRunAttempt >> runAttempt [
+	^ runAttempt .
+]
+
+{ #category : 'accessing' }
 GHRunAttempt >> runAttempt: anInteger [
 	runAttempt := anInteger
+]
+
+{ #category : 'accessing' }
+GHRunAttempt >> runStartedAt [
+	^ runStartedAt .
 ]
 
 { #category : 'accessing' }
@@ -47,8 +105,18 @@ GHRunAttempt >> runStartedAt: aDate [
 ]
 
 { #category : 'accessing' }
+GHRunAttempt >> status [
+	^ status .
+]
+
+{ #category : 'accessing' }
 GHRunAttempt >> status: aString [
 	status := aString
+]
+
+{ #category : 'accessing' }
+GHRunAttempt >> updatedAt [
+	^ updatedAt .
 ]
 
 { #category : 'accessing' }

@@ -50,14 +50,14 @@ GHRunner class >> fromDictionary: dict [
         createdAt:      ((dict at: 'created_at') asDateAndTime);
         updatedAt:      ((dict at: 'updated_at') asDateAndTime );
         runStartedAt:   ((dict at: 'run_started_at') asDateAndTime );
-        runAttempt:     (dict at: 'run_attempt' ifAbsent: [ dict at: #runAttempt ]);
+        "runAttempt:     (dict at: 'run_attempt' ifAbsent: [ dict at: #runAttempt ]);"
         actor:          (Actor fromDictionary: (dict at: 'actor'));
         triggeringActor:(Actor fromDictionary: (dict at: 'triggering_actor'));
         headCommit:     (Commit fromDictionary: (dict at: 'head_commit'));
         repository:     (Repository fromDictionary: (dict at: 'repository'));
         workflow:       (Workflow fromDictionary: (dict at: 'workflow'));
-        jobs:           (GHJob fromDictArray: (dict at: 'jobs'));
-        "attempts:       (Attempt fromRuns: self id runAttempt: self runAttempt"       
+        "jobs:           (GHJob fromDictArray: (dict at: 'jobs'));"
+        attempts:       (GHRunAttempt fromDictArray: (dict at: 'run_attempts'));      
 		  yourself.
 ]
 
@@ -72,6 +72,11 @@ GHRunner >> actor: anActor [
     (anActor isKindOf: Actor)
         ifTrue: [ actor := anActor ]
         ifFalse: [ self error: 'must be Actor, but received: ', anActor class name ].
+]
+
+{ #category : 'accessing' }
+GHRunner >> attempts [
+    ^ attempts.
 ]
 
 { #category : 'accessing' }
@@ -117,6 +122,23 @@ GHRunner >> display_title: aString [
 { #category : 'accessing' }
 GHRunner >> event: aString [
 	event := aString
+]
+
+{ #category : 'public' }
+GHRunner >> getMostRecentStartedAt [
+    | dates |
+    dates := self attempts collect: [ :att | att runStartedAt ].
+    ^ dates isEmpty
+        ifTrue:  [ DateAndTime now addDays: -10000 ]  "fecha muy antigua"
+        ifFalse: [ dates max ].
+]
+
+{ #category : 'public' }
+GHRunner >> getTotalExecutionTime [
+    "Devuelve la suma de los tiempos de ejecución de todos los attempts de este runner."
+    ^ self attempts
+        inject: 0
+        into: [ :sum :att | sum + att getExecutionTime ]
 ]
 
 { #category : 'accessing' }

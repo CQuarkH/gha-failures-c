@@ -137,6 +137,67 @@ GHRunnerCollection >> addAxesLabels: canvas [
 	canvas add: yLabel
 ]
 
+{ #category : 'public' }
+GHRunnerCollection >> addExportControlsTo: canvas at: position [
+    "Agregar controles de exportación PNG y PDF al canvas"
+    | exportLabel pngButton pdfButton buttonWidth buttonHeight |
+    
+    buttonWidth := 100.
+    buttonHeight := 30.
+    
+    "Etiqueta de exportación"
+    exportLabel := RSLabel new
+        text: 'Export:';
+        fontSize: 12;
+        color: Color black;
+        translateTo: position.
+    canvas add: exportLabel.
+    
+    "Botón PNG"
+    pngButton := RSBox new
+        width: buttonWidth;
+        height: buttonHeight;
+        color: Color lightBlue;
+        translateTo: position + (0 @ 25).
+    canvas add: pngButton.
+    
+    pngButton @ (RSPopup text: 'Export as PNG').
+    pngButton @ RSHighlightable new.
+    pngButton
+        when: RSMouseClick
+        do: [ :evt | self exportCanvasAsPNG: canvas ]
+        for: self.
+    
+    "Etiqueta del botón PNG"
+    canvas add: (RSLabel new
+        text: 'PNG';
+        fontSize: 10;
+        color: Color black;
+        translateTo: position + (0 @ 25)).
+    
+    "Botón PDF"
+    pdfButton := RSBox new
+        width: buttonWidth;
+        height: buttonHeight;
+        color: Color lightGreen;
+        translateTo: position + (0 @ 65).
+    canvas add: pdfButton.
+    
+    pdfButton @ (RSPopup text: 'Export as PDF').
+    pdfButton @ RSHighlightable new.
+    pdfButton
+        when: RSMouseClick
+        do: [ :evt | self exportCanvasAsPDF: canvas ]
+        for: self.
+    
+    "Etiqueta del botón PDF"
+    canvas add: (RSLabel new
+        text: 'PDF';
+        fontSize: 10;
+        color: Color black;
+        translateTo: position + (0 @ 65)).
+]
+
 { #category : 'adding' }
 GHRunnerCollection >> addHotspotLegend: canvas at: position [
 	"Agrega leyenda explicativa"
@@ -263,6 +324,118 @@ GHRunnerCollection >> addJobsSummaryPopupFor: runner withJobs: jobs inGroup: mol
 		'Success Rate: ', ((successfulJobs / totalJobs * 100) rounded printString), '%' ]).
 ]
 
+{ #category : 'public' }
+GHRunnerCollection >> addLayerBorder: canvas atX: x layerWidth: width layerNumber: layerNum [
+    "Agregar borde rectangular negro para delimitar un layer"
+    | border layerHeight topY |
+    
+    "Calcular la altura necesaria para el layer (estimación)"
+    layerHeight := 600.  "Altura fija generosa para contener todos los elementos"
+    topY := 70.          "Posición Y inicial"
+    
+    "Crear rectángulo de borde"
+    border := RSBox new
+        width: width;
+        height: layerHeight;
+        color: Color transparent;
+        borderColor: Color black;
+        borderWidth: 2;
+        model: 'LayerBorder-', layerNum asString.  "Para poder identificarlo después"
+    
+    "Posicionar el borde"
+    border translateTo: (x + (width / 2)) @ (topY + (layerHeight / 2)).
+    
+    "Agregar al canvas (enviar al fondo para que no tape las cajas)"
+    canvas add: border.
+    border pushBack.
+]
+
+{ #category : 'adding' }
+GHRunnerCollection >> addLayerBorderForBoxes: canvas boxes: boxes atX: x layerName: layerName [
+    "Crear un borde que contenga todas las cajas del layer con etiqueta"
+    | minY maxY layerWidth layerHeight border label |
+    
+    boxes isEmpty ifTrue: [ ^ self ].
+    
+    "Calcular dimensiones basadas en las cajas existentes"
+    minY := (boxes collect: [ :box | box position y - (box height / 2) ]) min - 30.
+    maxY := (boxes collect: [ :box | box position y + (box height / 2) ]) max + 10.
+    layerWidth := (boxes collect: [ :box | box width ]) max + 40.
+    layerHeight := maxY - minY.
+    
+    "Crear el borde"
+    border := RSBox new
+        width: layerWidth;
+        height: layerHeight;
+        color: Color transparent;
+        border: (RSBorder new color: Color black; width: 2);
+        yourself.
+    
+    "Posicionar el borde"
+    border translateTo: (x + (layerWidth / 2)) @ (minY + (layerHeight / 2)).
+    
+    "Crear etiqueta en la parte superior del borde"
+    label := RSLabel new
+        text: layerName;
+        fontSize: 12;
+        color: Color black;
+        bold;
+        yourself.
+    
+    "Posicionar etiqueta en la parte superior del borde"
+    label translateTo: (x + (layerWidth / 2)) @ (minY + 16).
+    
+    "Agregar al canvas (primero el borde para que esté atrás)"
+    canvas add: border.
+	 border pushBack.
+    canvas add: label.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> addLayerBorderForBoxes: canvas boxes: boxes atX: x layerName: layerName layerNumber: layerNumber layerBorders: layerBorders [
+    "Crear un borde que contenga todas las cajas del layer con etiqueta"
+    | minY maxY layerWidth layerHeight border label borderElements |
+    
+    boxes isEmpty ifTrue: [ ^ self ].
+    
+    "Calcular dimensiones basadas en las cajas existentes"
+    minY := (boxes collect: [ :box | box position y - (box height / 2) ]) min - 30.
+    maxY := (boxes collect: [ :box | box position y + (box height / 2) ]) max + 10.
+    layerWidth := (boxes collect: [ :box | box width ]) max + 40.
+    layerHeight := maxY - minY.
+    
+    "Crear el borde"
+    border := RSBox new
+        width: layerWidth;
+        height: layerHeight;
+        color: Color transparent;
+        border: (RSBorder new color: Color black; width: 2);
+        yourself.
+    
+    "Posicionar el borde"
+    border translateTo: (x + (layerWidth / 2)) @ (minY + (layerHeight / 2)).
+    
+    "Crear etiqueta en la parte superior del borde"
+    label := RSLabel new
+        text: layerName;
+        fontSize: 12;
+        color: Color black;
+        bold;
+        yourself.
+    
+    "Posicionar etiqueta en la parte superior del borde"
+    label translateTo: (x + (layerWidth / 2)) @ (minY + 16).
+    
+    "Agregar al canvas (primero el borde para que esté atrás)"
+    canvas add: border.
+    border pushBack.
+    canvas add: label.
+    
+    "Guardar los elementos del borde para posterior eliminación"
+    borderElements := OrderedCollection with: border with: label.
+    layerBorders at: layerNumber put: borderElements.
+]
+
 { #category : 'adding' }
 GHRunnerCollection >> addLegendTo: canvas at: position [
 	| legendBox legendItems yOffset |
@@ -317,6 +490,32 @@ GHRunnerCollection >> addLegendTo: canvas at: position [
 		translateTo: position + (45 @ yOffset)).
 ]
 
+{ #category : 'public' }
+GHRunnerCollection >> addLogTextToBox: box logText: logText onCanvas: canvas [
+    "Agregar el texto del log dentro de la caja"
+    | label maxWidth lines wrappedText |
+    
+    maxWidth := box width - 10. "Dejar margen"
+    
+    "Dividir el texto en líneas que quepan en el ancho"
+    lines := self wrapText: logText maxWidth: maxWidth.
+    
+    "Crear el texto completo"
+    wrappedText := lines joinUsing: String cr.
+    
+    "Crear label con el texto"
+    label := RSLabel new
+        text: wrappedText;
+        fontSize: 8;
+        color: Color black;
+        yourself.
+    
+    "Posicionar el texto en el centro de la caja"
+    label translateTo: box position.
+    
+    canvas add: label.
+]
+
 { #category : 'adding' }
 GHRunnerCollection >> addMolecularLegendTo: canvas at: position [
 	"Leyenda explicativa"
@@ -362,6 +561,313 @@ GHRunnerCollection >> addWorkflowSeparator: canvas at: y width: w color: color [
 ]
 
 { #category : 'public' }
+GHRunnerCollection >> buildRunnerBoxesFrom: groupedRunners colors: colorArray [
+	| runnerBoxes sectionPadding rectHeight innerSpacing borderWidth allAttemptsBoxes allJobsBoxes allStepsBoxes allEntries |
+	
+	runnerBoxes := Dictionary new.
+	sectionPadding := 6. "Separación entre grupos de rectángulos"
+	rectHeight := 4. "Altura fija para cada rectángulo interior"
+	innerSpacing := 0. "Separación entre rectángulos del mismo grupo"
+	borderWidth := 2. "Ancho del borde del Run"
+	
+	"Colecciones para normalizar después"
+	allAttemptsBoxes := OrderedCollection new.
+	allJobsBoxes := OrderedCollection new.
+	allStepsBoxes := OrderedCollection new.
+	
+	groupedRunners withIndexDo: [ :pair :idx |
+		| key entries |
+		key := pair key.
+		entries := pair value collect: [ :runner |
+			| runW runH runCol runBox attempts totalExecutionTime attemptsBoxes jobsBoxes stepsBoxes attemptsCount jobsCount stepsCount |
+			
+			"1) Extraer información del runner"
+			attempts := runner attempts.
+			
+			"2) Calcular tiempo total de ejecución (suma de todos los attempts)"
+			totalExecutionTime := runner getTotalExecutionTime .
+			
+			"3) Contar elementos para cada sección"
+			attemptsCount := attempts size.
+			jobsCount := attempts 
+				inject: 0 
+				into: [ :sum :attempt | sum + attempt jobs size ].
+			stepsCount := attempts 
+				inject: 0 
+				into: [ :sum :attempt | 
+					sum + (attempt jobs 
+						inject: 0 
+						into: [ :jobSum :job | jobSum + job steps size ]) ].
+			
+			"4) Calcular ancho basado en tiempo de ejecución"
+			runW := totalExecutionTime. "Será normalizado después"
+			
+			"5) Calcular altura total basada en contenido real"
+			runH := (attemptsCount * rectHeight) + 
+			        (jobsCount * rectHeight) + 
+			        (stepsCount * rectHeight) + 
+			        ((attemptsCount - 1 max: 0) * innerSpacing) + 
+			        ((jobsCount - 1 max: 0) * innerSpacing) + 
+			        ((stepsCount - 1 max: 0) * innerSpacing) + 
+			        (2 * sectionPadding) "Separación entre secciones"
+					  + (2 * borderWidth).
+			
+			"6) Color del borde según conclusión del runner"
+			runCol := self 
+				getColorForConclusion: runner conclusion 
+				base: (colorArray at: idx - 1 \\ colorArray size + 1).
+			
+			"7) Crear rectángulos interiores para attempts (vertical)"
+			attemptsBoxes := OrderedCollection new.
+			attempts withIndexDo: [ :att :attIdx |
+				| attW attCol attBox |
+				attW := (runW - (borderWidth * 2)) . "Ancho completo del run - el borde"
+				attCol := self 
+					getColorForConclusion: att conclusion 
+					base: runCol.
+				attBox := RSBox new
+					width: attW;
+					height: rectHeight;
+					color: attCol;
+					border: nil;
+					model: att.
+				
+				"Popup para attempt"
+				attBox @ (RSPopup text: [ :attempt |
+					| execTime jobsInAttempt |
+					execTime := attempt getExecutionTime.
+					jobsInAttempt := attempt jobs size.
+					'Attempt #' , attempt runAttempt asString
+					, String cr , 'Status: ' , attempt status asString
+					, String cr , 'Conclusion: ' , attempt conclusion asString
+					, String cr , 'Jobs: ' , jobsInAttempt asString
+					, String cr , 'Exec Time: ' , execTime asString , 's'
+					, String cr , 'Started: ' , attempt runStartedAt asString
+					, String cr , 'Updated: ' , attempt updatedAt asString ]).
+				
+				attBox @ RSHighlightable new.
+				attBox 
+					when: RSMouseClick 
+					do: [ :evt | evt shape model inspect ] 
+					for: self.
+				
+				attemptsBoxes add: attBox.
+				allAttemptsBoxes add: attBox.
+			].
+			
+			"8) Crear rectángulos interiores para jobs (vertical)"
+			jobsBoxes := OrderedCollection new.
+			attempts do: [ :att |
+				att jobs withIndexDo: [ :job :jobIdx |
+					| jobW jobCol jobBox |
+					jobW := (runW - (borderWidth * 2)) . "Ancho completo del run - el borde"
+					jobCol := self 
+						getColorForConclusion: job conclusion 
+						base: runCol.
+					jobBox := RSBox new
+						width: jobW;
+						height: rectHeight;
+						color: jobCol;
+						border: nil;
+						model: job.
+					
+					"Popup para job"
+					jobBox @ (RSPopup text: [ :j |
+						| stepsInJob |
+						stepsInJob := j steps size.
+						'Job: ' , j name asString
+						, String cr , 'Status: ' , j status asString
+						, String cr , 'Conclusion: ' , j conclusion asString
+						, String cr , 'Steps: ' , stepsInJob asString
+						, String cr , 'Started: ' , j startedAt asString
+						, String cr , 'Completed: ' , j completedAt asString ]).
+					
+					jobBox @ RSHighlightable new.
+					jobBox 
+						when: RSMouseClick 
+						do: [ :evt | evt shape model inspect ] 
+						for: self.
+					
+					jobsBoxes add: jobBox.
+					allJobsBoxes add: jobBox.
+				].
+			].
+			
+			"9) Crear rectángulos interiores para steps (vertical)"
+			stepsBoxes := OrderedCollection new.
+			attempts do: [ :att |
+				att jobs do: [ :job |
+					job steps withIndexDo: [ :step :stepIdx |
+						| stepW stepCol stepBox |
+						stepW := (runW - (borderWidth * 2)) . "Ancho completo del run - el borde"
+						stepCol := self 
+							getColorForConclusion: step conclusion 
+							base: runCol.
+						stepBox := RSBox new
+							width: stepW;
+							height: rectHeight;
+							color: stepCol;
+							border: nil;
+							model: step.
+						
+						"Popup para step"
+						stepBox @ (RSPopup text: [ :s |
+							'Step: ' , s name asString
+							, String cr , 'Status: ' , s status asString
+							, String cr , 'Conclusion: ' , s conclusion asString
+							, String cr , 'Started: ' , s startedAt asString
+							, String cr , 'Completed: ' , s completedAt asString ]).
+						
+						stepBox @ RSHighlightable new.
+						stepBox 
+							when: RSMouseClick 
+							do: [ :evt | evt shape model inspect ] 
+							for: self.
+						
+						stepsBoxes add: stepBox.
+						allStepsBoxes add: stepBox.
+					].
+				].
+			].
+			
+			"10) Crear caja principal del runner"
+			runBox := RSBox new
+				width: runW;
+				height: runH;
+				color: Color white;
+				border: (RSBorder new
+					color: runCol;
+					width: borderWidth );
+				model: runner.
+			
+			"11) Popup principal para el runner"
+			runBox @ (RSPopup text: [ :r |
+				'Workflow: ' , r workflow name
+				, String cr , 'Run: ' , r name asString
+				, String cr , 'Attempts: ' , attemptsCount asString
+				, String cr , 'Jobs: ' , jobsCount asString
+				, String cr , 'Steps: ' , stepsCount asString
+				, String cr , 'Total Exec Time: ' , totalExecutionTime asString , 's'
+				, String cr , 'Conclusion: ' , r conclusion asString
+				, String cr , 'Click for details...' ]).
+			
+			runBox @ RSHighlightable new.
+			runBox 
+				when: RSMouseClick 
+				do: [ :evt | self showRunnerDetails: evt shape model ] 
+				for: self.
+			
+			"12) Devolver estructura"
+			Dictionary new
+				at: #runBox put: runBox;
+				at: #attemptsBoxes put: attemptsBoxes;
+				at: #jobsBoxes put: jobsBoxes;
+				at: #stepsBoxes put: stepsBoxes;
+				at: #innerSpacing put: innerSpacing;
+				at: #totalExecutionTime put: totalExecutionTime;
+				yourself ].
+		
+		runnerBoxes at: key put: entries ].
+	
+	allEntries := runnerBoxes values flatCollect: [ :entries | entries ].
+	allEntries inspect.
+	
+	"13) Normalizar anchos de runners basado en tiempo de ejecución"
+	RSNormalizer width
+    shapes: (allEntries collect: [ :entry | entry at: #runBox ]);
+    from: 50;
+    to: 200;
+    normalize: [ :runnerModel | 
+        | matchingEntry time |
+        matchingEntry := allEntries 
+            detect: [ :entry | 
+                | entryBox entryModel |
+                entryBox := entry at: #runBox.
+                entryModel := entryBox model.
+                entryModel == runnerModel ]
+            ifNone: [ nil ].
+            
+        time := matchingEntry 
+            ifNotNil: [ matchingEntry at: #totalExecutionTime ]
+            ifNil: [ 1 ].
+        Transcript show: 'Normalizando con tiempo: ', time asString; cr.
+        time ].
+
+	"14) Ajustar anchos de rectángulos interiores después de normalizar runners"
+	runnerBoxes values do: [ :entries |
+		entries do: [ :entry |
+			| runBox attemptsBoxes jobsBoxes stepsBoxes newWidth newHeight |
+			runBox := entry at: #runBox.
+			attemptsBoxes := entry at: #attemptsBoxes.
+			jobsBoxes := entry at: #jobsBoxes.
+			stepsBoxes := entry at: #stepsBoxes.
+			newWidth := runBox width.
+			
+			"Recalcular altura basada en contenido real"
+			newHeight := (attemptsBoxes size * rectHeight) + 
+			             (jobsBoxes size * rectHeight) + 
+			             (stepsBoxes size * rectHeight) + 
+			             ((attemptsBoxes size - 1 max: 0) * innerSpacing) + 
+			             ((jobsBoxes size - 1 max: 0) * innerSpacing) + 
+			             ((stepsBoxes size - 1 max: 0) * innerSpacing) + 
+			             (2 * sectionPadding)
+							 + (2 * borderWidth).
+			
+			"Ajustar tamaño del runBox"
+			runBox extent: newWidth @ newHeight.
+			
+			"Ajustar ancho de rectángulos de attempts"
+			attemptsBoxes do: [ :attBox |
+				attBox extent: (newWidth - (borderWidth * 2) ) @ rectHeight ].
+			
+			"Ajustar ancho de rectángulos de jobs"
+			jobsBoxes do: [ :jobBox |
+				jobBox extent: (newWidth - (borderWidth * 2) ) @ rectHeight ].
+			
+			"Ajustar ancho de rectángulos de steps"
+			stepsBoxes do: [ :stepBox |
+				stepBox extent: (newWidth - (borderWidth * 2) ) @ rectHeight ].
+		].
+	].
+	
+	^ runnerBoxes
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> calculateCanvasContentBounds: canvas [
+    "Calcular el rectángulo que contiene todo el contenido del canvas"
+    | allShapes minX maxX minY maxY bounds margin  |
+    
+    allShapes := canvas shapes.
+    allShapes isEmpty ifTrue: [ ^ Rectangle origin: 0@0 corner: 100@100 ].
+    
+    "Inicializar con el primer shape"
+    bounds := allShapes first encompassingRectangle.
+    minX := bounds left.
+    maxX := bounds right.
+    minY := bounds top.
+    maxY := bounds bottom.
+    
+    "Expandir bounds para incluir todos los shapes"
+    allShapes do: [ :shape |
+        | shapeBounds |
+        shapeBounds := shape encompassingRectangle.
+        minX := minX min: shapeBounds left.
+        maxX := maxX max: shapeBounds right.
+        minY := minY min: shapeBounds top.
+        maxY := maxY max: shapeBounds bottom.
+    ].
+    
+    "Agregar margen"
+    margin := 50.
+    ^ Rectangle 
+        left: minX - margin
+        right: maxX + margin
+        top: minY - margin
+        bottom: maxY + margin.
+]
+
+{ #category : 'public' }
 GHRunnerCollection >> calculateMoleculeSize: runner withNucleusSize: nucleusSize [
 	"Calcula el tamaño total de la molécula según la cantidad de jobs"
 	| jobCount baseSize |
@@ -376,6 +882,215 @@ GHRunnerCollection >> calculateMoleculeSize: runner withNucleusSize: nucleusSize
 			numberOfOrbits := (jobCount / 10) ceiling.
 			^ baseSize + (numberOfOrbits * 70) "Espacio para órbitas"
 		]
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> calculateRootRect: totalWeight [
+    "Calcula el rectángulo raíz con mejores proporciones"
+    | side |
+    side := totalWeight sqrt.
+    ^ Rectangle origin: 10@10 extent: side @ side
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> calculateTreemapLayout: treemapData [
+    "Implementación de treemap real usando algoritmo de partición recursiva,
+    donde el índice 3 de cada entry es ya el peso absoluto (areaRequired)."
+
+    | layouts totalWeight normalizedData rootRect rootSide |
+
+    "1) Calcular el peso total sumando el campo 3 de cada dato"
+    totalWeight := treemapData
+        inject: 0
+        into: [ :sum :data | sum + (data at: 3) ].
+
+    "2) Normalizar datos: añadimos [ weight ratio ] al final de cada entry"
+    normalizedData := treemapData collect: [ :data |
+        | weight ratio |
+        weight := data at: 3.
+        ratio  := weight / totalWeight.
+        data , { weight. ratio }
+    ].
+
+    "3) Ordenar por ratio (mayor primero) para mejor estabilidad del layout"
+    normalizedData := normalizedData
+        asSortedCollection: [ :a :b | (a at: 6) > (b at: 6) ].
+     totalWeight := treemapData inject: 0 into: [ :s :d | s + (d at: 3) ].
+     rootSide := totalWeight sqrt.           "lógica: rootSide² = totalWeight"
+     rootRect := Rectangle origin: 10@10 
+                      extent: rootSide @ rootSide.
+
+     "4) Inicializar la colección de layouts"
+    layouts := OrderedCollection new.
+
+    "5) Ejecutar la partición recursiva en el rectángulo total"
+
+    self 
+        partitionTreemap: normalizedData asArray
+        inRect: rootRect 
+        layouts: layouts.
+
+    ^ layouts
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> calculateWorstAspectRatio: row inRect: rect [
+    "Calcula el peor aspect ratio de una fila de elementos"
+    | totalWeight width height rectArea |
+    
+    totalWeight := row sum: [ :data | data at: 6 ].
+    totalWeight = 0 ifTrue: [ ^ Float infinity ].
+    
+    rectArea := rect area.
+    rectArea = 0 ifTrue: [ ^ Float infinity ].
+    
+    "Determinar si la fila va horizontal o vertical"
+    rect width >= rect height
+        ifTrue: [
+            width := rectArea / rect height.
+            height := rect height.
+        ]
+        ifFalse: [
+            width := rect width.
+            height := rectArea / rect width.
+        ].
+    
+    "Calcular aspect ratios de cada elemento en la fila"
+    ^ row inject: 0 into: [ :maxRatio :data |
+        | elementWeight elementWidth elementHeight ratio minDim maxDim |
+        elementWeight := data at: 6.
+        elementWidth := width.
+        elementHeight := totalWeight = 0 
+            ifTrue: [ height ]
+            ifFalse: [ height * elementWeight / totalWeight ].
+        
+        elementWidth = 0 ifTrue: [ elementWidth := 1 ].
+        elementHeight = 0 ifTrue: [ elementHeight := 1 ].
+        
+        minDim := elementWidth min: elementHeight.
+        maxDim := elementWidth max: elementHeight.
+        
+        ratio := minDim = 0 ifTrue: [ Float infinity ] ifFalse: [ maxDim / minDim ].
+        maxRatio max: ratio
+    ]
+]
+
+{ #category : 'as yet unclassified' }
+GHRunnerCollection >> clearConnections: connections canvas: canvas [
+    "Limpiar todas las conexiones"
+    connections do: [ :connection |
+        (canvas shapes includes: connection) ifTrue: [
+            canvas removeShape: connection ]].
+    connections removeAll.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> clearConnectionsByType: connectionType connections: connections canvas: canvas [
+    "Limpiar conexiones de un tipo específico"
+    | connectionsToRemove |
+    
+    connectionsToRemove := OrderedCollection new.
+    
+    connections do: [ :connection |
+        | connType |
+        
+        connType := connection propertyAt: #connectionType ifAbsent: [ nil ].
+        
+        connType = connectionType ifTrue: [
+            (canvas shapes includes: connection) ifTrue: [
+                canvas removeShape: connection ].
+            connectionsToRemove add: connection ].
+    ].
+    
+    connectionsToRemove do: [ :conn | connections remove: conn ].
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> clearConnectionsFrom: layerNumber connections: connections canvas: canvas [
+    "Limpiar conexiones desde un layer específico en adelante"
+    | connectionsToRemove |
+    
+    connectionsToRemove := OrderedCollection new.
+    
+    connections do: [ :connection |
+        | shouldRemove |
+        shouldRemove := false.
+        
+        "Determinar si la conexión debe ser removida basándose en las posiciones"
+        (layerNumber = 3 and: [connection to position x > 300]) ifTrue: [ shouldRemove := true ].
+        (layerNumber = 4 and: [connection to position x > 550]) ifTrue: [ shouldRemove := true ].
+        
+        shouldRemove ifTrue: [
+            (canvas shapes includes: connection) ifTrue: [
+                canvas removeShape: connection ].
+            connectionsToRemove add: connection ]].
+    
+    connectionsToRemove do: [ :conn | connections remove: conn ].
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> clearConnectionsFromLayer: layerNumber connections: connections canvas: canvas [
+    "Limpiar conexiones que SALEN desde un layer específico en adelante"
+    | connectionsToRemove |
+    
+    connectionsToRemove := OrderedCollection new.
+    
+    connections do: [ :connection |
+        | fromLayer toLayer |
+        
+        fromLayer := connection propertyAt: #fromLayer ifAbsent: [ nil ].
+        toLayer := connection propertyAt: #toLayer ifAbsent: [ nil ].
+        
+        "Eliminar conexiones que salen desde este layer o layers superiores"
+        (fromLayer notNil and: [ fromLayer >= layerNumber ]) ifTrue: [
+            (canvas shapes includes: connection) ifTrue: [
+                canvas removeShape: connection ].
+            connectionsToRemove add: connection ].
+    ].
+    
+    connectionsToRemove do: [ :conn | connections remove: conn ].
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> clearLayersFrom: layerNumber layerBoxes: layerBoxes canvas: canvas [
+    "Limpiar layers desde el número especificado en adelante"
+    | layersToRemove |
+    
+    layersToRemove := layerBoxes keys select: [ :key | key >= layerNumber ].
+    
+    layersToRemove do: [ :layerKey |
+        | boxes |
+        boxes := layerBoxes at: layerKey.
+        boxes do: [ :box | canvas removeShape: box ].
+        layerBoxes removeKey: layerKey.
+    ].
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> clearLayersFrom: layerNumber layerBoxes: layerBoxes canvas: canvas layerBorders: layerBorders [
+    "Limpiar layers desde el número especificado en adelante"
+    | layersToRemove bordersToRemove |
+    
+    layersToRemove := layerBoxes keys select: [ :key | key >= layerNumber ].
+    bordersToRemove := layerBorders keys select: [ :key | key >= layerNumber ].
+    
+    "Remover las cajas de los layers"
+    layersToRemove do: [ :layerKey |
+        | boxes |
+        boxes := layerBoxes at: layerKey.
+        boxes do: [ :box | canvas removeShape: box ].
+        layerBoxes removeKey: layerKey.
+    ].
+    
+    "Remover los bordes de los layers"
+    bordersToRemove do: [ :layerKey |
+        | borderElements |
+        borderElements := layerBorders at: layerKey.
+        borderElements do: [ :element | 
+            (canvas shapes includes: element) ifTrue: [
+                canvas removeShape: element ]].
+        layerBorders removeKey: layerKey.
+    ].
 ]
 
 { #category : 'public' }
@@ -429,6 +1144,272 @@ GHRunnerCollection >> createAtomicVisualizationFor: runner inGroup: moleculeGrou
 				 withJobs: jobs 
 				 inGroup: moleculeGroup 
 				 withNucleusSize: nucleusSize ]
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createAttemptsLayer: attempts onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements layerSpacing: layerSpacing parentRun: parentRun [
+    "Crear el layer de attempts (segunda columna)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    attempts doWithIndex: [ :attempt :index |
+        | jobs steps box color h w |
+        
+        "Métricas del attempt"
+        jobs := attempt jobs size.
+        steps := attempt jobs inject: 0 into: [ :sum :job | sum + job steps size ].
+        
+        "Dimensiones: altura basada en jobs"
+        h := (jobs max: 1) * 4 + 8.
+        w := 25.
+        
+        "Color basado en el estado del attempt o del parent run"
+        color := (attempt conclusion ifNil: [ parentRun conclusion ])
+            ifNotNil: [ :conclusion | self getColorForConclusion: conclusion base: Color white ]
+            ifNil: [ Color lightGray ].
+        
+        "Crear caja del attempt"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: attempt.
+        
+        "Posicionar"
+        box translateTo: (x + (w / 2)) @ (currentY + (h / 2)).
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :att |
+            'Attempt #', index asString, String cr,
+            'Jobs: ', jobs asString, String cr,
+            'Steps: ', steps asString ]).
+        
+        "Interacción: mostrar jobs al hacer click"
+        box @ RSHighlightable new.
+        box when: RSMouseClick do: [ :evt |
+            self clearLayersFrom: 3 layerBoxes: layerBoxes canvas: canvas.
+            self highlightSelected: evt shape selectedElements: selectedElements layer: 2.
+            self createJobsLayer: attempt jobs 
+                 onCanvas: canvas 
+                 atX: (x + layerSpacing) 
+                 withBoxSpacing: spacing
+                 layerBoxes: layerBoxes
+                 selectedElements: selectedElements
+                 layerSpacing: layerSpacing
+                 parentAttempt: attempt.
+        ] for: self.
+        
+        canvas add: box.
+        boxes add: box.
+        currentY := currentY + h + spacing.
+    ].
+    
+    layerBoxes at: 2 put: boxes.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createAttemptsLayer: attempts onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements layerSpacing: layerSpacing parentRun: parentRun connections: connections parentBox: parentBox [
+    "Crear el layer de attempts (segunda columna)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    attempts doWithIndex: [ :attempt :index |
+        | jobs steps box color h w connection |
+        
+        "Métricas del attempt"
+        jobs := attempt jobs size.
+        steps := attempt jobs inject: 0 into: [ :sum :job | sum + job steps size ].
+        
+        "Dimensiones: altura basada en jobs"
+        h := (jobs max: 1) * 4 + 8.
+        w := 25.
+        
+        "Color basado en el estado del attempt o del parent run"
+        color := (attempt conclusion ifNil: [ parentRun conclusion ])
+            ifNotNil: [ :conclusion | self getColorForConclusion: conclusion base: Color white ]
+            ifNil: [ Color lightGray ].
+        
+        "Crear caja del attempt"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: attempt.
+        
+        "Posicionar"
+        box translateTo: (x + (w / 2)) @ (currentY + (h / 2)).
+        
+        "Crear conexión desde parent run"
+        connection := self createConnection: parentBox to: box.
+        canvas add: connection.
+        connections add: connection.
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :att |
+            'Attempt #', index asString, String cr,
+            'Jobs: ', jobs asString, String cr,
+            'Steps: ', steps asString ]).
+        
+        "Interacción: mostrar jobs al hacer click"
+        box @ RSHighlightable new.
+        box when: RSMouseClick do: [ :evt |
+            self clearLayersFrom: 3 layerBoxes: layerBoxes canvas: canvas.
+            self clearConnectionsFrom: 3 connections: connections canvas: canvas.
+            self highlightSelected: evt shape selectedElements: selectedElements layer: 2.
+            self createJobsLayer: attempt jobs 
+                 onCanvas: canvas 
+                 atX: (x + layerSpacing) 
+                 withBoxSpacing: spacing
+                 layerBoxes: layerBoxes
+                 selectedElements: selectedElements
+                 layerSpacing: layerSpacing
+                 parentAttempt: attempt
+                 connections: connections
+                 parentBox: evt shape.
+        ] for: self.
+        
+        canvas add: box.
+        boxes add: box.
+        currentY := currentY + h + spacing.
+    ].
+    
+    layerBoxes at: 2 put: boxes.
+    
+    "Crear borde para este layer"
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: (x - 10) layerName: 'Attempts'.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createAttemptsLayer: attempts onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements layerSpacing: layerSpacing parentRun: parentRun connections: connections parentBox: parentBox layerBorders: layerBorders [
+    "Crear el layer de attempts (segunda columna)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    attempts doWithIndex: [ :attempt :index |
+        | jobs steps box color h w time |
+        
+        "Métricas del attempt"
+        jobs := attempt jobs size.
+        time := attempt getExecutionTime.
+        steps := attempt jobs inject: 0 into: [ :sum :job | sum + job steps size ].
+        
+        "Dimensiones: ancho basado en jobs"
+        h := 10. "altura inicial - será normalizada después"
+        w := (jobs max: 1) * 4 + 8.
+        
+        "Color basado en el estado del attempt o del parent run"
+        color := (attempt conclusion ifNil: [ parentRun conclusion ])
+            ifNotNil: [ :conclusion | self getColorForConclusion: conclusion base: Color white ]
+            ifNil: [ Color lightGray ].
+        
+        "Crear caja del attempt"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: attempt.
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :att |
+            'Attempt #', index asString, String cr,
+            'Conclusion: ', att conclusion asString, String cr,
+            'Time: ', time asString, 's', String cr,
+            'Jobs: ', jobs asString, String cr,
+            'Steps: ', steps asString ]).
+        
+        "Interacción: mostrar jobs al hacer click"
+        box @ RSHighlightable new.
+        box when: RSMouseClick do: [ :evt |
+            self clearConnectionsFromLayer: 3 connections: connections canvas: canvas.
+            self clearLayersFrom: 3 layerBoxes: layerBoxes canvas: canvas layerBorders: layerBorders.
+            self highlightSelected: evt shape selectedElements: selectedElements layer: 2.
+            self createJobsLayer: attempt jobs 
+                 onCanvas: canvas 
+                 atX: (x + layerSpacing) 
+                 withBoxSpacing: spacing
+                 layerBoxes: layerBoxes
+                 selectedElements: selectedElements
+                 layerSpacing: layerSpacing
+                 parentAttempt: attempt
+                 connections: connections
+                 parentBox: evt shape
+                 layerBorders: layerBorders.
+        ] for: self.
+        
+        boxes add: box.
+    ].
+    
+    "APLICAR NORMALIZACIÓN ANTES DE POSICIONAR Y AGREGAR AL CANVAS"
+    RSNormalizer height
+        shapes: boxes;
+        from: 10;
+        to: 300;
+        normalize: [ :attemptModel | attemptModel getExecutionTime ].
+    
+    "AHORA POSICIONAR, CREAR CONEXIONES Y AGREGAR AL CANVAS"
+    boxes doWithIndex: [ :box :index |
+        | connection |
+        
+        "Posicionar"
+        box translateTo: (x + (box width / 2)) @ (currentY + (box height / 2)).
+        
+        "Crear conexión desde parent run - MARCADA"
+        connection := self createConnection: parentBox to: box 
+                          connectionType: #runToAttempt 
+                          fromLayer: 1 
+                          toLayer: 2.
+        canvas add: connection.
+        connections add: connection.
+        
+        canvas add: box.
+        currentY := currentY + box height + spacing.
+    ].
+    
+    layerBoxes at: 2 put: boxes.
+    
+    "Crear borde para este layer"
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: (x - 10) layerName: 'Attempts' layerNumber: 2 layerBorders: layerBorders.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createConnection: fromBox to: toBox [
+    "Crear una línea con flecha desde fromBox hasta toBox"
+    | line |
+    
+    line := RSLine new
+        from: fromBox;
+        to: toBox;
+        color: Color gray;
+        width: 1.
+    
+    "Agregar punta de flecha"
+    
+    ^ line
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createConnection: fromBox to: toBox connectionType: connectionType fromLayer: fromLayer toLayer: toLayer [
+    "Crear una conexión marcada entre dos cajas"
+    | line |
+    
+    line := RSLine new
+        from: fromBox;
+        to: toBox;
+        color: Color gray;
+        yourself.
+    
+    "Marcar la conexión con metadatos"
+    line propertyAt: #connectionType put: connectionType.
+    line propertyAt: #fromLayer put: fromLayer.
+    line propertyAt: #toLayer put: toLayer.
+    
+    ^ line
 ]
 
 { #category : 'public' }
@@ -793,6 +1774,514 @@ GHRunnerCollection >> createIndividualJobsFor: runner withJobs: jobs inGroup: mo
 ]
 
 { #category : 'public' }
+GHRunnerCollection >> createJobsLayer: jobs onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements layerSpacing: layerSpacing parentAttempt: parentAttempt [
+    "Crear el layer de jobs (tercera columna)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    jobs doWithIndex: [ :job :index |
+        | steps box color h w |
+        
+        "Métricas del job"
+        steps := job steps size.
+        
+        "Dimensiones: altura basada en steps"
+        h := (steps max: 1) * 2 + 6.
+        w := 20.
+        
+        "Color basado en el estado del job"
+        color := (job conclusion ifNil: [ 'unknown' ])
+            ifNotNil: [ :conclusion | self getColorForConclusion: conclusion base: Color white ]
+            ifNil: [ Color lightGray ].
+        
+        "Crear caja del job"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: job.
+        
+        "Posicionar"
+        box translateTo: (x + (w / 2)) @ (currentY + (h / 2)).
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :j |
+            'Job: ', (j name ifNil: ['Job #', index asString] ifNotNil: [:n | n asString]), String cr,
+            'Steps: ', steps asString, String cr,
+            'Status: ', (j status ifNil: ['unknown'] ifNotNil: [:s | s asString]) ]).
+        
+        "Interacción: mostrar steps al hacer click"
+        box @ RSHighlightable new.
+        box when: RSMouseClick do: [ :evt |
+            self clearLayersFrom: 4 layerBoxes: layerBoxes canvas: canvas.
+            self highlightSelected: evt shape selectedElements: selectedElements layer: 3.
+            self createStepsLayer: job steps 
+                 onCanvas: canvas 
+                 atX: (x + layerSpacing) 
+                 withBoxSpacing: spacing
+                 layerBoxes: layerBoxes
+                 selectedElements: selectedElements
+                 parentJob: job.
+        ] for: self.
+        
+        canvas add: box.
+        boxes add: box.
+        currentY := currentY + h + spacing.
+    ].
+    
+    layerBoxes at: 3 put: boxes.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createJobsLayer: jobs onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements layerSpacing: layerSpacing parentAttempt: parentAttempt connections: connections parentBox: parentBox [
+    "Crear el layer de jobs (tercera columna)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    jobs doWithIndex: [ :job :index |
+        | steps box color h w connection |
+        
+        "Métricas del job"
+        steps := job steps size.
+        
+        "Dimensiones: altura basada en steps"
+        h := (steps max: 1) * 2 + 6.
+        w := 20.
+        
+        "Color basado en el estado del job"
+        color := (job conclusion ifNil: [ 'unknown' ])
+            ifNotNil: [ :conclusion | self getColorForConclusion: conclusion base: Color white ]
+            ifNil: [ Color lightGray ].
+        
+        "Crear caja del job"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: job.
+        
+        "Posicionar"
+        box translateTo: (x + (w / 2)) @ (currentY + (h / 2)).
+        
+        "Crear conexión desde parent attempt"
+        connection := self createConnection: parentBox to: box.
+        canvas add: connection.
+        connections add: connection.
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :j |
+            'Job: ', (j name ifNil: ['Job #', index asString] ifNotNil: [:n | n asString]), String cr,
+            'Steps: ', steps asString, String cr,
+            'Status: ', (j status ifNil: ['unknown'] ifNotNil: [:s | s asString]) ]).
+        
+        "Interacción: mostrar steps al hacer click"
+        box @ RSHighlightable new.
+        box when: RSMouseClick do: [ :evt |
+            self clearLayersFrom: 4 layerBoxes: layerBoxes canvas: canvas.
+            self clearConnectionsFrom: 4 connections: connections canvas: canvas.
+            self highlightSelected: evt shape selectedElements: selectedElements layer: 3.
+            self createStepsLayer: job steps 
+                 onCanvas: canvas 
+                 atX: (x + layerSpacing) 
+                 withBoxSpacing: spacing
+                 layerBoxes: layerBoxes
+                 selectedElements: selectedElements
+                 parentJob: job
+                 connections: connections
+                 parentBox: evt shape.
+        ] for: self.
+        
+        canvas add: box.
+        boxes add: box.
+        currentY := currentY + h + spacing.
+    ].
+    
+    layerBoxes at: 3 put: boxes.
+    
+    "Crear borde para este layer"
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: x layerName: 'Jobs'.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createJobsLayer: jobs onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements layerSpacing: layerSpacing parentAttempt: parentAttempt connections: connections parentBox: parentBox layerBorders: layerBorders [
+    "Crear el layer de jobs (tercera columna)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    jobs doWithIndex: [ :job :index |
+        | steps box color h w time |
+        
+        "Métricas del job"
+        steps := job steps size.
+        time := job executionTime.
+        
+        "Dimensiones: anchura basada en steps"
+        h := 10. "altura inicial - será normalizada después"
+        w := (steps max: 1) * 2 + 6.
+        
+        "Color basado en el estado del job"
+        color := (job conclusion ifNil: [ 'unknown' ])
+            ifNotNil: [ :conclusion | self getColorForConclusion: conclusion base: Color white ]
+            ifNil: [ Color lightGray ].
+        
+        "Crear caja del job"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: job.
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :j |
+            'Job: ', (j name ifNil: ['Job #', index asString] ifNotNil: [:n | n asString]), String cr,
+            'Steps: ', steps asString, String cr,
+            'Time: ', time asString, 's', String cr,
+            'Conclusion: ', (j conclusion ifNil: ['unknown'] ifNotNil: [:s | s asString]) ]).
+        
+        "Interacción: mostrar steps al hacer click"
+        box @ RSHighlightable new.
+        box when: RSMouseClick do: [ :evt |
+            self clearConnectionsFromLayer: 4 connections: connections canvas: canvas.
+            self clearConnectionsByType: #jobToStep connections: connections canvas: canvas.
+            self clearLayersFrom: 4 layerBoxes: layerBoxes canvas: canvas layerBorders: layerBorders.
+            self highlightSelected: evt shape selectedElements: selectedElements layer: 3.
+            self createStepsLayer: job steps 
+                 onCanvas: canvas 
+                 atX: (x + layerSpacing)
+                 withBoxSpacing: spacing
+                 layerBoxes: layerBoxes
+                 selectedElements: selectedElements
+                 layerSpacing: layerSpacing 
+                 parentJob: job
+                 connections: connections
+                 parentBox: evt shape
+                 layerBorders: layerBorders.
+        ] for: self.
+        
+        boxes add: box.
+    ].
+    
+    "APLICAR NORMALIZACIÓN ANTES DE POSICIONAR Y AGREGAR AL CANVAS"
+    RSNormalizer height
+        shapes: boxes;
+        from: 10;
+        to: 200;
+        normalize: [ :jobModel | jobModel executionTime ].
+    
+    "AHORA POSICIONAR, CREAR CONEXIONES Y AGREGAR AL CANVAS"
+    boxes doWithIndex: [ :box :index |
+        | connection |
+        
+        "Posicionar"
+        box translateTo: (x + (box width / 2)) @ (currentY + (box height / 2)).
+        
+        "Crear conexión desde parent attempt - MARCADA"
+        connection := self createConnection: parentBox to: box 
+                          connectionType: #attemptToJob 
+                          fromLayer: 2 
+                          toLayer: 3.
+        canvas add: connection.
+        connections add: connection.
+        
+        canvas add: box.
+        currentY := currentY + box height + spacing.
+    ].
+    
+    layerBoxes at: 3 put: boxes.
+    
+    "Crear borde para este layer"
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: (x - 10) layerName: 'Jobs' layerNumber: 3 layerBorders: layerBorders.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements connections: connections parentBox: parentBox layerBorders: layerBorders [
+    "Crear el layer de log (quinta columna) - solo para steps con failure"
+    | logText truncatedLog wrappedLines textElements connection currentY boxes layerWidth margin |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    textElements := OrderedCollection new.
+    layerWidth := 400.
+    margin := 10.
+    
+    "Obtener el log del step"
+    logText := step log ifNil: [ 'No log available' ].
+    
+    "Truncar a los primeros 200 caracteres"
+    truncatedLog := logText size > 2000 
+        ifTrue: [ (logText first: 2000), '...' ]
+        ifFalse: [ logText ].
+    
+    "Hacer wrap del texto para que respete el ancho con margen"
+    wrappedLines := self wrapTextToLines: truncatedLog maxWidth: (layerWidth - (margin * 2)).
+    
+    "Crear elementos de texto para cada línea"
+    wrappedLines doWithIndex: [ :line :index |
+        | textElement |
+        
+        textElement := RSLabel new
+            text: line;
+            fontSize: 9;
+            color: Color black;
+            yourself.
+        
+        "Posicionar cada línea centrada en el área del layer"
+        "El borde se crea en (x - 10) con layerWidth, así que el centro es:"
+        textElement translateTo: ((x - 10) + (layerWidth / 2)) @ (currentY + (index * 12)).
+        
+        "Popup con información completa en cada línea"
+        textElement @ (RSPopup text: [
+            'Step Log:', String cr,
+            'Step: ', (step name ifNil: ['Unknown'] ifNotNil: [:n | n asString]), String cr,
+            'Full log (first 500 chars):', String cr,
+            (step log ifNil: ['No log available'] ifNotNil: [:log | 
+                log size > 500 
+                    ifTrue: [ (log first: 500), '...' ]
+                    ifFalse: [ log ]]) ]).
+        
+        "Highlight al pasar mouse"
+        textElement @ RSHighlightable new.
+        textElement model: step.
+        
+        canvas add: textElement.
+        textElements add: textElement.
+        boxes add: textElement.
+    ].
+    
+    "Crear conexión desde parent step - MARCADA"
+    textElements ifNotEmpty: [
+        connection := self createConnection: parentBox to: textElements first 
+                          connectionType: #stepToLog 
+                          fromLayer: 4 
+                          toLayer: 5.
+        canvas add: connection.
+        connections add: connection.
+    ].
+    
+    layerBoxes at: 5 put: boxes.
+    
+    "Crear borde para este layer"
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: (x - 10) layerName: 'Log (Failure)' layerNumber: 5 layerBorders: layerBorders.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createRunsLayer: runs onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements layerSpacing: layerSpacing [
+    "Crear el layer de runs (columna izquierda)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    runs doWithIndex: [ :runner :index |
+        | time jobs box color h w |
+        
+        "Métricas del run"
+        time := runner getTotalExecutionTime.
+        jobs := runner attempts inject: 0 into: [ :sum :att | sum + att jobs size ].
+        
+        "Dimensiones: altura basada en jobs, ancho fijo"
+        h := (jobs max: 1) * 3 + 10.
+        w := 30.
+        
+        "Color según conclusión"
+        color := self getColorForConclusion: runner conclusion base: Color white.
+        
+        "Crear caja del run"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: runner.
+        
+        "Posicionar"
+        box translateTo: (x + (w / 2)) @ (currentY + (h / 2)).
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :r |
+            'Run: ', r name asString, String cr,
+            'Conclusion: ', r conclusion asString, String cr,
+            'Time: ', time asString, 's', String cr,
+            'Jobs: ', jobs asString, String cr,
+            'Attempts: ', r attempts size asString ]).
+        
+        "Interacción: mostrar attempts al hacer click"
+        box @ RSHighlightable new.
+        box when: RSMouseClick do: [ :evt |
+            self clearLayersFrom: 2 layerBoxes: layerBoxes canvas: canvas.
+            self highlightSelected: evt shape selectedElements: selectedElements layer: 1.
+            self createAttemptsLayer: runner attempts 
+                 onCanvas: canvas 
+                 atX: (x + layerSpacing) 
+                 withBoxSpacing: spacing
+                 layerBoxes: layerBoxes
+                 selectedElements: selectedElements
+                 layerSpacing: layerSpacing
+                 parentRun: runner.
+        ] for: self.
+        
+        canvas add: box.
+        boxes add: box.
+        currentY := currentY + h + spacing.
+    ].
+    
+    layerBoxes at: 1 put: boxes.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createRunsLayer: runs onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements layerSpacing: layerSpacing connections: connections [
+    "Crear el layer de runs (columna izquierda)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    runs doWithIndex: [ :runner :index |
+        | time jobs box color h w |
+        
+        "Métricas del run"
+        time := runner getTotalExecutionTime.
+        jobs := runner attempts inject: 0 into: [ :sum :att | sum + att jobs size ].
+        
+        "Dimensiones: altura basada en jobs, ancho fijo"
+        h := (jobs max: 1) * 3 + 10.
+        w := 30.
+        
+        "Color según conclusión"
+        color := self getColorForConclusion: runner conclusion base: Color white.
+        
+        "Crear caja del run"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: runner.
+        
+        "Posicionar"
+        box translateTo: (x + (w / 2)) @ (currentY + (h / 2)).
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :r |
+            'Run: ', r name asString, String cr,
+            'Conclusion: ', r conclusion asString, String cr,
+            'Time: ', time asString, 's', String cr,
+            'Jobs: ', jobs asString, String cr,
+            'Attempts: ', r attempts size asString ]).
+        
+        "Interacción: mostrar attempts al hacer click"
+        box @ RSHighlightable new.
+        box when: RSMouseClick do: [ :evt |
+            self clearLayersFrom: 2 layerBoxes: layerBoxes canvas: canvas.
+            self clearConnections: connections canvas: canvas.
+            self highlightSelected: evt shape selectedElements: selectedElements layer: 1.
+            self createAttemptsLayer: runner attempts 
+                 onCanvas: canvas 
+                 atX: (x + layerSpacing) 
+                 withBoxSpacing: spacing
+                 layerBoxes: layerBoxes
+                 selectedElements: selectedElements
+                 layerSpacing: layerSpacing
+                 parentRun: runner
+                 connections: connections
+                 parentBox: evt shape.
+        ] for: self.
+        
+        canvas add: box.
+        boxes add: box.
+        currentY := currentY + h + spacing.
+    ].
+    
+    layerBoxes at: 1 put: boxes.
+    
+    "Crear borde para Layer 1"
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: 30 layerName: 'Runs'.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createRunsLayer: runs onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements layerSpacing: layerSpacing connections: connections layerBorders: layerBorders [
+    "Crear el layer de runs (columna izquierda)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    runs doWithIndex: [ :runner :index |
+        | time jobs box color h w |
+        
+        "Métricas del run"
+        time := runner getTotalExecutionTime.
+        jobs := runner attempts inject: 0 into: [ :sum :att | sum + att jobs size ].
+        
+        h := 10 . "altura inicial - será normalizada después"
+        w := (jobs max: 1) * 3 + 10.
+        
+        "Color según conclusión"
+        color := self getColorForConclusion: runner conclusion base: Color white.
+        
+        "Crear caja del run"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: runner.
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :r |
+            'Run: ', r name asString, String cr,
+            'Conclusion: ', r conclusion asString, String cr,
+            'Time: ', time asString, 's', String cr,
+            'Jobs: ', jobs asString, String cr,
+            'Attempts: ', r attempts size asString ]).
+        
+        "Interacción: mostrar attempts al hacer click"
+        box @ RSHighlightable new.
+        box when: RSMouseClick do: [ :evt |
+            self clearConnectionsFromLayer: 2 connections: connections canvas: canvas.
+            self clearLayersFrom: 2 layerBoxes: layerBoxes canvas: canvas layerBorders: layerBorders.
+            self clearConnectionsByType: #runToAttempt connections: connections canvas: canvas.
+            self highlightSelected: evt shape selectedElements: selectedElements layer: 1.
+            self createAttemptsLayer: runner attempts 
+                 onCanvas: canvas 
+                 atX: (x + layerSpacing) 
+                 withBoxSpacing: spacing
+                 layerBoxes: layerBoxes
+                 selectedElements: selectedElements
+                 layerSpacing: layerSpacing
+                 parentRun: runner
+                 connections: connections
+                 parentBox: evt shape
+                 layerBorders: layerBorders.
+        ] for: self.
+        
+        boxes add: box.
+    ].
+    
+    "APLICAR NORMALIZACIÓN ANTES DE POSICIONAR Y AGREGAR AL CANVAS"
+    RSNormalizer height
+        shapes: boxes;
+        from: 10;
+        to: 60;
+        normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+    
+    "AHORA POSICIONAR Y AGREGAR AL CANVAS"
+    boxes do: [ :box |
+        box translateTo: (x + (box width / 2)) @ (currentY + (box height / 2)).
+        canvas add: box.
+        currentY := currentY + box height + spacing.
+    ].
+    
+    layerBoxes at: 1 put: boxes.
+    
+    "Crear borde para Layer 1"
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: 30 layerName: 'Runs' layerNumber: 1 layerBorders: layerBorders.
+]
+
+{ #category : 'public' }
 GHRunnerCollection >> createScalableOrbitsFor: runner inGroup: moleculeGroup withNucleusSize: nucleusSize [
 	"Crea órbitas escalables usando elípticas cuando hay muchos jobs"
 	| jobs jobCount |
@@ -873,13 +2362,454 @@ GHRunnerCollection >> createSimpleOrbitFor: runner withJobs: jobs inGroup: molec
 ]
 
 { #category : 'public' }
+GHRunnerCollection >> createStepsLayer: steps onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements layerSpacing: layerSpacing parentJob: parentJob connections: connections parentBox: parentBox layerBorders: layerBorders [
+    "Crear el layer de steps (cuarta columna)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    steps doWithIndex: [ :step :index |
+        | box color h w time |
+        
+        time := step executionTime.
+        "Tiempo como altura, ancho fijo"
+        h := 10. "altura inicial - será normalizada después"
+        w := 15.
+        
+        "Color basado en el estado del step"
+        color := (step conclusion ifNil: [ 'unknown' ])
+            ifNotNil: [ :conclusion | self getColorForConclusion: conclusion base: Color white ]
+            ifNil: [ Color lightGray ].
+        
+        "Crear caja del step"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: step.
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :s |
+            'Step: ', (s name ifNil: ['Step #', index asString] ifNotNil: [:n | n asString]), String cr,
+            'Time: ', time asString, 's', String cr,
+            'Conclusion: ', (s conclusion ifNil: ['unknown'] ifNotNil: [:st | st asString]) ]).
+        
+        "Highlight al pasar mouse"
+        box @ RSHighlightable new.
+        
+        "Interacción: mostrar log si es failure"
+        box when: RSMouseClick do: [ :evt |
+            | stepConclusion |
+            stepConclusion := step conclusion ifNil: [ 'unknown' ].
+            
+            "Solo mostrar log si el step tiene conclusion 'failure'"
+            stepConclusion = 'failure' ifTrue: [
+                self clearConnectionsFromLayer: 5 connections: connections canvas: canvas.
+                self clearLayersFrom: 5 layerBoxes: layerBoxes canvas: canvas layerBorders: layerBorders.
+                self highlightSelected: evt shape selectedElements: selectedElements layer: 4.
+					 self clearConnectionsByType: #stepToLog connections: connections canvas: canvas.
+                self createLogLayer: step 
+                     onCanvas: canvas 
+                     atX: (x + layerSpacing) 
+                     withBoxSpacing: spacing
+                     layerBoxes: layerBoxes
+                     selectedElements: selectedElements
+                     connections: connections
+                     parentBox: evt shape
+                     layerBorders: layerBorders.
+            ] ifFalse: [
+                "Si no es failure, solo limpiar layers superiores"
+                self clearConnectionsFromLayer: 5 connections: connections canvas: canvas.
+                self clearLayersFrom: 5 layerBoxes: layerBoxes canvas: canvas layerBorders: layerBorders.
+                self highlightSelected: evt shape selectedElements: selectedElements layer: 4.
+            ].
+        ] for: self.
+        
+        boxes add: box.
+    ].
+    
+    "APLICAR NORMALIZACIÓN ANTES DE POSICIONAR Y AGREGAR AL CANVAS"
+    RSNormalizer height
+        shapes: boxes;
+        from: 10;
+        to: 100;
+        normalize: [ :stepModel | stepModel executionTime ].
+    
+    "AHORA POSICIONAR, CREAR CONEXIONES Y AGREGAR AL CANVAS"
+    boxes doWithIndex: [ :box :index |
+        | connection |
+        
+        "Posicionar"
+        box translateTo: (x + (box width / 2)) @ (currentY + (box height / 2)).
+        
+        "Crear conexión desde parent job - MARCADA"
+        connection := self createConnection: parentBox to: box 
+                          connectionType: #jobToStep 
+                          fromLayer: 3 
+                          toLayer: 4.
+        canvas add: connection.
+        connections add: connection.
+        
+        canvas add: box.
+        currentY := currentY + box height + spacing.
+    ].
+    
+    layerBoxes at: 4 put: boxes.
+    
+    "Crear borde para este layer"
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: (x - 10) layerName: 'Steps' layerNumber: 4 layerBorders: layerBorders.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createStepsLayer: steps onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements parentJob: parentJob [
+    "Crear el layer de steps (cuarta columna)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    steps doWithIndex: [ :step :index |
+        | box color h w |
+        
+        "Dimensiones fijas para steps"
+        h := 15.
+        w := 15.
+        
+        "Color basado en el estado del step"
+        color := (step conclusion ifNil: [ 'unknown' ])
+            ifNotNil: [ :conclusion | self getColorForConclusion: conclusion base: Color white ]
+            ifNil: [ Color lightGray ].
+        
+        "Crear caja del step"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: step.
+        
+        "Posicionar"
+        box translateTo: (x + (w / 2)) @ (currentY + (h / 2)).
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :s |
+            'Step: ', (s name ifNil: ['Step #', index asString] ifNotNil: [:n | n asString]), String cr,
+            'Status: ', (s status ifNil: ['unknown'] ifNotNil: [:st | st asString]) ]).
+        
+        "Highlight al pasar mouse"
+        box @ RSHighlightable new.
+        
+        canvas add: box.
+        boxes add: box.
+        currentY := currentY + h + spacing.
+    ].
+    
+    layerBoxes at: 4 put: boxes.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createStepsLayer: steps onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements parentJob: parentJob connections: connections parentBox: parentBox [
+    "Crear el layer de steps (cuarta columna)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    steps doWithIndex: [ :step :index |
+        | box color h w connection |
+        
+        "Dimensiones fijas para steps"
+        h := 15.
+        w := 15.
+        
+        "Color basado en el estado del step"
+        color := (step conclusion ifNil: [ 'unknown' ])
+            ifNotNil: [ :conclusion | self getColorForConclusion: conclusion base: Color white ]
+            ifNil: [ Color lightGray ].
+        
+        "Crear caja del step"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: step.
+        
+        "Posicionar"
+        box translateTo: (x + (w / 2)) @ (currentY + (h / 2)).
+        
+        "Crear conexión desde parent job"
+        connection := self createConnection: parentBox to: box.
+        canvas add: connection.
+        connections add: connection.
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :s |
+            'Step: ', (s name ifNil: ['Step #', index asString] ifNotNil: [:n | n asString]), String cr,
+            'Status: ', (s status ifNil: ['unknown'] ifNotNil: [:st | st asString]) ]).
+        
+        "Highlight al pasar mouse"
+        box @ RSHighlightable new.
+        
+        canvas add: box.
+        boxes add: box.
+        currentY := currentY + h + spacing.
+    ].
+    
+    layerBoxes at: 4 put: boxes.
+    
+    "Crear borde para este layer"
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: x layerName: 'Steps'.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createStepsLayer: steps onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements parentJob: parentJob connections: connections parentBox: parentBox layerBorders: layerBorders [
+    "Crear el layer de steps (cuarta columna)"
+    | currentY boxes |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    
+    steps doWithIndex: [ :step :index |
+        | box color h w connection |
+        
+        "Dimensiones fijas para steps"
+        h := 15.
+        w := 15.
+        
+        "Color basado en el estado del step"
+        color := (step conclusion ifNil: [ 'unknown' ])
+            ifNotNil: [ :conclusion | self getColorForConclusion: conclusion base: Color white ]
+            ifNil: [ Color lightGray ].
+        
+        "Crear caja del step"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: step.
+        
+        "Posicionar"
+        box translateTo: (x + (w / 2)) @ (currentY + (h / 2)).
+        
+        "Crear conexión desde parent job - MARCADA"
+        connection := self createConnection: parentBox to: box 
+                          connectionType: #jobToStep 
+                          fromLayer: 3 
+                          toLayer: 4.
+        canvas add: connection.
+        connections add: connection.
+        
+        "Popup con información"
+        box @ (RSPopup text: [ :s |
+            'Step: ', (s name ifNil: ['Step #', index asString] ifNotNil: [:n | n asString]), String cr,
+            'Conclusion: ', (s conclusion ifNil: ['unknown'] ifNotNil: [:st | st asString]) ]).
+        
+        "Highlight al pasar mouse"
+        box @ RSHighlightable new.
+		  box when: RSMouseClick do: [ :evt | 
+				evt shape model inspect .
+			] for: self.
+        
+        canvas add: box.
+        boxes add: box.
+        currentY := currentY + h + spacing.
+    ].
+    
+    layerBoxes at: 4 put: boxes.
+    
+    "Crear borde para este layer"
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: (x - 10) layerName: 'Steps' layerNumber: 4 layerBorders: layerBorders.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> estimateRequiredGridSizeFor: runnerRects maxRowWidth: maxWidth spacing: spacing [
+
+    | currentX currentY maxHeightInRow totalWidth totalHeight |
+
+    currentX := 0.
+    currentY := 0.
+    maxHeightInRow := 0.
+    totalWidth := 0.
+    totalHeight := 0.
+
+    runnerRects do: [ :rect |
+        | box width height newX |
+
+        "■ Si rect viene siendo un Dictionary, tomo su runBox automáticamente"
+        box := (rect isKindOf: Dictionary)
+            ifTrue:  [ rect at: #runBox ]
+            ifFalse: [ rect ].
+
+        width := box width.
+        height := box height.
+        newX := currentX + width.
+
+        "salto de línea si excede el ancho máximo"
+        (newX > maxWidth) ifTrue: [
+            currentX := 0.
+            currentY := currentY + maxHeightInRow + spacing.
+            maxHeightInRow := 0.
+            newX := currentX + width.
+        ].
+
+        "actualizar medidas"
+        totalWidth := totalWidth max: newX.
+        totalHeight := currentY + height.
+
+        currentX := currentX + width + spacing.
+        maxHeightInRow := maxHeightInRow max: height.
+    ].
+
+    "añadir espacio extra inferior"
+    totalHeight := totalHeight + spacing.
+
+    ^ totalWidth @ totalHeight
+
+]
+
+{ #category : 'as yet unclassified' }
+GHRunnerCollection >> exportCanvasAsPDF: canvas [
+    "Exportar canvas completo como archivo PDF - Versión simple"
+    | fileName exporter |
+    
+    fileName := 'polymetric_view', DateAndTime now asString copyReplaceAll: ':' with: '-', '.pdf'.
+    
+    "Ajustar cámara para mostrar todo el contenido"
+    canvas zoomToFit.
+    
+    "Pequeña pausa para que se redibuje"
+    (Delay forMilliseconds: 50) wait.
+    
+    "Exportar"
+    exporter := RSPDFCairoExporter new.
+    exporter canvas: canvas.
+    exporter fileName: fileName.
+    exporter export.
+    
+    self inform: 'PDF exported as: ', fileName.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> exportCanvasAsPNG: canvas [
+    "Exportar canvas completo como archivo PNG - Versión simple basada en PDF"
+    | fileName exporter |
+
+    fileName := 'polymetric_view', DateAndTime now asString copyReplaceAll: ':' with: '-', '.png'.
+
+    "Ajustar cámara para mostrar todo el contenido"
+    canvas zoomToFit.
+
+    "Pequeña pausa para que se redibuje"
+    (Delay forMilliseconds: 50) wait.
+
+    "Exportar"
+    exporter := RSPNGExporter new.
+    exporter canvas: canvas.
+    exporter fileName: fileName.
+    exporter export.
+
+    self inform: 'PNG exported as: ', fileName.
+]
+
+{ #category : 'as yet unclassified' }
+GHRunnerCollection >> findBestRow: dataArray forRect: rect [
+    "Encuentra la mejor fila que minimiza el peor aspect ratio"
+    | bestRow bestRatio currentRow currentRatio |
+    
+    bestRow := { dataArray first }.
+    bestRatio := self calculateWorstAspectRatio: bestRow inRect: rect.
+    
+    2 to: dataArray size do: [ :i |
+        currentRow := dataArray first: i.
+        currentRatio := self calculateWorstAspectRatio: currentRow inRect: rect.
+        
+        currentRatio < bestRatio
+            ifTrue: [
+                bestRow := currentRow.
+                bestRatio := currentRatio.
+            ]
+            ifFalse: [ ^ bestRow ]. "Stop when ratio starts getting worse"
+    ].
+    
+    ^ bestRow
+]
+
+{ #category : 'as yet unclassified' }
+GHRunnerCollection >> findOptimalSplit: dataArray totalWeight: totalWeight [
+	"Encuentra el punto óptimo de división para minimizar aspect ratio"
+	| bestRatio bestSplit currentWeight |
+	
+	bestRatio := Float infinity.
+	bestSplit := 0.5.
+	currentWeight := 0.
+	
+	1 to: (dataArray size - 1) do: [ :i |
+		| data ratio |
+		data := dataArray at: i.
+		currentWeight := currentWeight + (data at: 6).
+		ratio := currentWeight / totalWeight.
+		
+		"evitar divisiones muy desbalanceadas"
+		(ratio > 0.1 and: [ ratio < 0.9 ]) ifTrue: [
+			| aspectRatio |
+			aspectRatio := (ratio / (1 - ratio)) abs.
+			aspectRatio < bestRatio ifTrue: [
+				bestRatio := aspectRatio.
+				bestSplit := ratio
+			]
+		]
+	].
+	
+	^ bestSplit
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> fitCameraToShowAllContent: canvas bounds: bounds [
+    "Ajustar la cámara para mostrar todo el contenido"
+    | camera canvasExtent contentExtent scaleX scaleY finalScale centerPoint |
+    
+    camera := canvas camera.
+    canvasExtent := canvas extent.
+    contentExtent := bounds extent.
+    
+    "Calcular escalas necesarias para ajustar todo el contenido"
+    scaleX := canvasExtent x / contentExtent x.
+    scaleY := canvasExtent y / contentExtent y.
+    
+    "Usar la escala menor para que todo quepa"
+    finalScale := (scaleX min: scaleY) * 0.9. "Factor 0.9 para dejar un poco de margen"
+    
+    "Calcular punto central del contenido"
+    centerPoint := bounds center.
+    
+    "Aplicar transformaciones a la cámara"
+    camera scale: finalScale.
+    camera position: centerPoint.
+    
+    "Actualizar canvas"
+    canvas signalUpdate.
+]
+
+{ #category : 'public' }
 GHRunnerCollection >> getColorForConclusion: conclusion base: baseColor [
-	"Retorna color basado en la conclusión del runner"
-	conclusion = 'success' ifTrue: [ ^ Color green alpha: 0.7 ].
-	conclusion = 'failure' ifTrue: [ ^ Color red alpha: 0.7 ].
-	conclusion = 'cancelled' ifTrue: [ ^ Color orange alpha: 0.7 ].
-	conclusion = 'skipped' ifTrue: [ ^ Color gray alpha: 0.7 ].
-	^ baseColor alpha: 0.7
+    conclusion = 'success'
+        ifTrue: [^ Color green alpha: 0.7].
+    conclusion = 'failure'
+        ifTrue: [^ Color red alpha: 0.7].
+    conclusion = 'cancelled'
+        ifTrue: [^ Color orange alpha: 0.7].
+    conclusion = 'skipped'
+        ifTrue: [^ Color gray alpha: 0.7].
+    conclusion = 'neutral'
+        ifTrue: [^ Color blue alpha: 0.7].     "casi completado"
+    conclusion = 'stale'
+        ifTrue: [^ Color magenta alpha: 0.7]. "desactualizado"
+    conclusion = 'timed_out'
+        ifTrue: [^ Color purple alpha: 0.7].  "se agotó"
+
+    "Fallback: baseColor semitransparente"
+    ^ baseColor alpha: 0.7.
+
 ]
 
 { #category : 'public' }
@@ -944,22 +2874,38 @@ GHRunnerCollection >> getJobPopupTextFor: aJob [
 
 { #category : 'public' }
 GHRunnerCollection >> getLastAttemptExecutionTime: runner [
-	"Calcula el tiempo de ejecución del último attempt del runner"
-	| lastAttemptJobs totalTime |
-	
-	"Filtrar jobs del último attempt"
-	lastAttemptJobs := runner jobs select: [ :job | 
-		job runAttempt = runner runAttempt ].
-	
-	"Calcular tiempo total sumando duración de todos los jobs del último attempt"
-	totalTime := lastAttemptJobs inject: 0 into: [ :sum :job |
-		| jobDuration |
-		jobDuration := (job startedAt notNil and: [ job completedAt notNil ])
-			ifTrue: [ (job completedAt - job startedAt) asSeconds ]
-			ifFalse: [ 0 ].
-		sum + jobDuration ].
-	
-	^ totalTime max: 1  "mínimo 1 segundo para visualización"
+    "Calcula el tiempo de ejecución máximo entre todos los attempts del runner"
+    | maxTime |
+    
+    maxTime := runner attempts 
+        ifEmpty: [ 1 ]
+        ifNotEmpty: [ 
+            runner attempts 
+                inject: 0 
+                into: [ :max :attempt | 
+                    max max: attempt getExecutionTime ]
+        ].
+    
+    "Garantizar al menos 1 segundo para evitar cajas de altura cero"
+    ^ maxTime max: 1
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> getMaxAttemptExecutionTime: runner [
+    "Calcula el tiempo de ejecución máximo entre todos los attempts del runner"
+    | maxTime |
+    
+    maxTime := runner attempts 
+        ifEmpty: [ 1 ]
+        ifNotEmpty: [ 
+            runner attempts 
+                inject: 0 
+                into: [ :max :attempt | 
+                    max max: attempt getExecutionTime ]
+        ].
+    
+    "Garantizar al menos 1 segundo para evitar cajas de altura cero"
+    ^ maxTime max: 1
 ]
 
 { #category : 'public' }
@@ -996,6 +2942,32 @@ GHRunnerCollection >> getStartAngleForGroup: groupIndex [
 	^ (groupIndex - 1) * (Float pi / 3) "60 grados por grupo"
 ]
 
+{ #category : 'as yet unclassified' }
+GHRunnerCollection >> groupAndSortRunners: aCollection [
+    | copy dict result |
+
+    "1) Copiar aCollection a un OrderedCollection puro"
+    copy := OrderedCollection new.
+    aCollection do: [ :r | copy add: r ].
+
+    "2) Agrupar por nombre de workflow"
+    dict := copy groupedBy: [ :r | r workflow name ].
+
+    "3) Ordenar cada lista de runs por runStartedAt descendente"
+    dict keysAndValuesDo: [ :key :vals |
+        dict at: key put: (vals asSortedCollection: [ :a :b | a runStartedAt > b runStartedAt ])
+    ].
+
+    "4) Convertir associations a OrderedCollection y ordenarlas por clave"
+    result := OrderedCollection new.
+    (dict associations
+         asSortedCollection: [ :a :b | a key < b key ])
+        do: [ :assoc | result add: assoc ].
+
+    ^ result
+
+]
+
 { #category : 'public' }
 GHRunnerCollection >> groupJobs: jobs inGroupsOf: size [
 	"Agrupa los jobs en grupos del tamaño especificado"
@@ -1015,6 +2987,26 @@ GHRunnerCollection >> groupJobs: jobs inGroupsOf: size [
 	currentGroup isEmpty ifFalse: [ groups add: currentGroup ].
 	
 	^ groups
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> highlightSelected: selectedShape selectedElements: selectedElements layer: layerNumber [
+    "Destacar el elemento seleccionado y quitar highlight de otros"
+    | previousSelected |
+    
+    "Quitar highlight anterior del mismo layer"
+    previousSelected := selectedElements at: layerNumber ifAbsent: [ nil ].
+    previousSelected ifNotNil: [ 
+        previousSelected borderColor: Color transparent.
+        previousSelected borderWidth: 0.
+    ].
+    
+    "Aplicar highlight al nuevo elemento seleccionado"
+    selectedShape borderColor: Color red.
+    selectedShape borderWidth: 2.
+    
+    "Guardar la nueva selección"
+    selectedElements at: layerNumber put: selectedShape.
 ]
 
 { #category : 'public' }
@@ -1138,105 +3130,2397 @@ GHRunnerCollection >> hotspotViewByActor [
 ]
 
 { #category : 'public' }
-GHRunnerCollection >> loadRunnersFromDir: aDirPath [
-	| dir worklist files |
-	dir := aDirPath asFileReference .
-	worklist := OrderedCollection with: dir.
-	files := OrderedCollection new.
-	
-	[ worklist isEmpty ] whileFalse: [
-    | current |
-    current := worklist removeFirst.
-    current isDirectory
-        ifTrue: [
-            "Si es carpeta, añadir sus hijos a la cola"
-            worklist addAll: (current children)
-        ]
-        ifFalse: [
-            "Si es fichero y acaba en .json, lo recojo"
-            (current extension = 'json')
-                ifTrue: [ files add: current ]
-        ].
-	].
-	runners := files collect: [ :file |
-		| json dict |
-		json := file readStream contents.
-		dict := NeoJSONReader fromString: json.
-		GHRunner fromDictionary: dict	
-	].
-	Transcript show: 'Loaded ', runners size printString, ' runners'; cr.
+GHRunnerCollection >> layerDesignView: workflowName [
+    "Diseño por layers: Runs -> Attempts -> Jobs -> Steps"
+    | canvas filteredRunners currentLayer layerBoxes layerPositions 
+      layerWidth layerSpacing boxSpacing selectedElements connections layerBorders |
+    
+    "1) Filtrar runners por workflow específico"
+    filteredRunners := runners select: [ :runner |
+        runner workflow name = workflowName ].
+    
+    "Validar que existan runners para este workflow"
+    filteredRunners isEmpty ifTrue: [
+        ^ self inform: 'No runs found for workflow: ', workflowName ].
+    
+    "2) Inicialización"
+    canvas := RSCanvas new.
+    currentLayer := 1.
+    layerBoxes := Dictionary new.
+    layerPositions := Dictionary new.
+    layerWidth := 200.
+    layerSpacing := 100.
+    boxSpacing := 5.
+    selectedElements := Dictionary new.
+    connections := OrderedCollection new.
+    layerBorders := Dictionary new.
+    
+    "3) Ordenar runs cronológicamente (más reciente primero)"
+    filteredRunners := filteredRunners asSortedCollection: [ :a :b |
+        (a getMostRecentStartedAt) >= (b getMostRecentStartedAt) ].
+    
+    "4) Crear Layer 1: Runs"
+    self createRunsLayer: filteredRunners 
+         onCanvas: canvas 
+         atX: 50 
+         withBoxSpacing: boxSpacing
+         layerBoxes: layerBoxes
+         selectedElements: selectedElements
+         layerSpacing: layerSpacing
+         connections: connections
+         layerBorders: layerBorders.
+    
+    "5) Título principal"
+    canvas add: (RSLabel new
+        text: 'Layer Design: ', workflowName, ' (', filteredRunners size printString, ' runs)';
+        fontSize: 16;
+        color: Color black;
+        translateTo: 300 @ 20).
+
+    "7) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
+
+{ #category : 'as yet unclassified' }
+GHRunnerCollection >> layoutRow: row inRect: rect layouts: layouts [
+    "Distribuye una fila de elementos en el rectángulo"
+    | totalWeight isHorizontal currentPos |
+    
+    totalWeight := row sum: [ :data | data at: 6 ].
+    isHorizontal := rect width >= rect height.
+    currentPos := rect origin.
+    
+    row do: [ :data |
+        | elementWeight elementRect workflowName workflowRunners totalTime runCount |
+        
+        elementWeight := data at: 6.
+        
+        elementRect := isHorizontal
+            ifTrue: [
+                | width height |
+                width := rect width * elementWeight / totalWeight.
+                height := rect height.
+                Rectangle origin: currentPos extent: width @ height.
+            ]
+            ifFalse: [
+                | width height |
+                width := rect width.
+                height := rect height * elementWeight / totalWeight.
+                Rectangle origin: currentPos extent: width @ height.
+            ].
+        
+        "Extraer datos del workflow"
+        workflowName := data at: 1.
+        workflowRunners := data at: 2.
+        totalTime := data at: 3.
+        runCount := data at: 4.
+        
+        "Agregar al layout"
+        layouts add: {
+            workflowName. workflowRunners. totalTime. runCount.
+            elementWeight. elementRect origin x. elementRect origin y.
+            elementRect width. elementRect height
+        }.
+        
+        "Actualizar posición"
+        currentPos := isHorizontal
+            ifTrue: [ currentPos + (elementRect width @ 0) ]
+            ifFalse: [ currentPos + (0 @ elementRect height) ].
+    ]
 ]
 
 { #category : 'public' }
-GHRunnerCollection >> polymetricView [
+GHRunnerCollection >> loadRunnersFromDir: aDirPath [
+    | dir worklist files validRunners discardedCount |
+    dir := aDirPath asFileReference.
+    worklist := OrderedCollection with: dir.
+    files := OrderedCollection new.
+    
+    [ worklist isEmpty ] whileFalse: [
+        | current |
+        current := worklist removeFirst.
+        current isDirectory
+            ifTrue: [
+                "Si es carpeta, añadir sus hijos a la cola"
+                | children |
+                children := current children.
+                children ifNotEmpty: [ worklist addAll: children ]
+            ]
+            ifFalse: [
+                "Si es fichero y acaba en .json, lo recojo"
+                (current extension = 'json')
+                    ifTrue: [ files add: current ]
+            ].
+    ].
+    
+    "Cargar runners validando que tengan conclusion"
+    validRunners := OrderedCollection new.
+    discardedCount := 0.
+    
+    files doWithIndex: [ :file :index |
+        [
+            | json dict conclusion |
+            json := file readStream contents.
+            dict := NeoJSONReader fromString: json.
+            
+            "Verificar que el dict tenga conclusion y no sea nil"
+            conclusion := dict at: 'conclusion' ifAbsent: [ nil ].
+            conclusion ifNotNil: [
+                "Solo crear el GHRunner si tiene conclusion válida"
+                validRunners add: (GHRunner fromDictionary: dict).
+            ] ifNil: [
+                "Contar los descartados"
+                discardedCount := discardedCount + 1.
+            ].
+            
+            "Log cada 1000 archivos procesados"
+            (index rem: 1000) = 0 ifTrue: [
+                Transcript show: 'Progress: ', index printString, '/', files size printString, ' files processed, ', validRunners size printString, ' runners loaded, ', discardedCount printString, ' discarded'; cr.
+            ]
+        ] on: Error do: [ :ex |
+            "Solo log errores de parsing"
+            Transcript show: 'Error loading file ', index printString, ': ', file basename, ' - ', ex messageText; cr.
+        ]
+    ].
+    
+    runners := validRunners.
+    
+    "Mostrar resumen completo"
+    Transcript show: 'SUMMARY:'; cr.
+    Transcript show: 'Total files processed: ', files size printString; cr.
+    Transcript show: 'Runners loaded: ', runners size printString; cr.
+    Transcript show: 'Runs discarded (no conclusion): ', discardedCount printString; cr.
+]
 
-	| canvas sortedRunners gridWidth currentX currentY maxWidth rowHeight |
-	canvas := RSCanvas new.
+{ #category : 'public' }
+GHRunnerCollection >> partitionTreemap: dataArray inRect: rect layouts: layouts [
+	"Particiona recursivamente el rectángulo para crear un treemap proporcional al peso real de cada grupo."
 
-	sortedRunners := runners asSortedCollection: [ :a :b |
-		                 a runAttempt <= b runAttempt ].
+	| isWide leftData rightData leftWeight rightWeight splitRatio splitPoint leftRect rightRect cumulativeWeight totalWeight halfWeight |
 
-	gridWidth := 10. "10 por fila"
-	currentX := 0.
-	currentY := 0.
-	maxWidth := 0.
-	rowHeight := 0.
+	dataArray isEmpty ifTrue: [ ^ self ].
 
-	sortedRunners withIndexDo: [ :runner :index |
-			| square size color |
-			size := (runner runAttempt max: 1) * 13. "factor de escala"
+	"caso base: un solo elemento"
+	dataArray size = 1 ifTrue: [
+		| data workflowName workflowRunners totalTime runCount weight |
+		data := dataArray first.
+		workflowName := data at: 1.
+		workflowRunners := data at: 2.
+		totalTime := data at: 3.
+		runCount := data at: 4.
+		weight := data at: 5.
 
-			color := runner conclusion = 'failure'
-				         ifTrue: [ Color red ]
-				         ifFalse: [ Color white ].
+		layouts add: {
+			workflowName. workflowRunners. totalTime. runCount.
+			weight. rect origin x. rect origin y. rect width. rect height
+		}.
+		^ self
+	].
 
-			square := RSBox new
-				          size: size;
-				          color: color;
-				          border: (RSBorder new
-						           color: Color black;
-						           width: 1);
-				          model: runner. 
+	"1) Determinar si se divide horizontal o verticalmente"
+	isWide := rect width > rect height.
 
-			square translateTo: currentX + (size / 2) @ (currentY + (size / 2)).
+	"2) Dividir el arreglo de datos en dos grupos equilibrados"
+	leftData := OrderedCollection new.
+	rightData := OrderedCollection new.
 
-			"popup con información básica al hover"
-			square @ (RSPopup text: [ :r |
-					 'Name: ' , r name asString , String cr , 'Run Attempt: '
-					 , r runAttempt asString , String cr , 'Conclusion: '
-					 , r conclusion asString , String cr , 'Status: '
-					 , r status asString , String cr , 'Click for detailed info...' ]).
+	totalWeight := dataArray sum: [:d | d at: 6 ].
+	halfWeight := totalWeight / 2.
+	cumulativeWeight := 0.
 
-			"interacción de click"
-			square @ RSHighlightable new.
-			square
-				when: RSMouseClick
-				do: [ :evt | self showRunnerDetails: evt shape model ]
-				for: self.
+	dataArray do: [:data |
+		(cumulativeWeight < halfWeight)
+			ifTrue: [
+				leftData add: data.
+				cumulativeWeight := cumulativeWeight + (data at: 6).
+			]
+			ifFalse: [ rightData add: data ].
+	].
 
+	"3) Asegurar que ambos grupos tengan al menos un elemento"
+	leftData isEmpty ifTrue: [ leftData add: rightData removeFirst ].
+	rightData isEmpty ifTrue: [ rightData add: leftData removeLast ].
 
-			canvas add: square.
+	"4) Calcular pesos reales de ambos grupos"
+	leftWeight := leftData sum: [:d | d at: 6 ].
+	rightWeight := rightData sum: [:d | d at: 6 ].
+	totalWeight := leftWeight + rightWeight.
+	splitRatio := leftWeight / totalWeight.
 
-			currentX := currentX + size + 5. "5 píxeles de separación"
-			maxWidth := maxWidth max: currentX.
-			rowHeight := rowHeight max: size.
+	"5) Calcular punto de corte y subdividir el rectángulo"
+	splitPoint := isWide
+		ifTrue: [ rect origin x + (rect width * splitRatio) ]
+		ifFalse: [ rect origin y + (rect height * splitRatio) ].
 
-			index \\ gridWidth = 0 ifTrue: [
-					currentX := 0.
-					currentY := currentY + rowHeight + 5. "5 píxeles de separación vertical"
-					rowHeight := 0 ] ].
+	isWide
+		ifTrue: [
+			leftRect := Rectangle origin: rect origin corner: splitPoint @ rect corner y.
+			rightRect := Rectangle origin: splitPoint @ rect origin y corner: rect corner.
+		]
+		ifFalse: [
+			leftRect := Rectangle origin: rect origin corner: rect corner x @ splitPoint.
+			rightRect := Rectangle origin: rect origin x @ splitPoint corner: rect corner.
+		].
 
-	canvas add: (RSLabel new
-			 text: 'GH Runners - Polymetric View (', self runners size printString, ')';
-			 fontSize: 16;
-			 color: Color black;
-			 translateTo: maxWidth / 2 @ -20).
+	"6) Llamada recursiva"
+	self partitionTreemap: leftData asArray inRect: leftRect layouts: layouts.
+	self partitionTreemap: rightData asArray inRect: rightRect layouts: layouts.
 
-	self addLegendTo: canvas at: maxWidth + 20 @ 0.
+]
 
-	canvas @ RSCanvasController.
+{ #category : 'public' }
+GHRunnerCollection >> polymetricViewByConclusionJobsHeight [
+    "Visualización poliométrica agrupada por conclusión: Jobs como altura, Tiempo como ancho"
+    | canvas groupedRunners minTime maxTime minJobs maxJobs 
+      spacing currentX currentY maxWidth rowHeight runnerTimes allBoxes
+      conclusionSpacing titleSpacing |
+    
+    "1) Inicialización"
+    canvas := RSCanvas new.
+    
+    "2) Agrupar runners por conclusión"
+    groupedRunners := Dictionary new.
+    runners do: [ :runner |
+        | conclusion conclusionCollection |
+        conclusion := runner conclusion.
+        conclusionCollection := groupedRunners
+            at: conclusion
+            ifAbsentPut: [ OrderedCollection new ].
+        conclusionCollection add: runner.
+    ].
+    
+    "3) Ordenar cada grupo por fecha de inicio"
+    groupedRunners keysAndValuesDo: [ :conclusion :runnerList |
+        groupedRunners
+            at: conclusion
+            put: (runnerList asSortedCollection: [ :a :b |
+                (a getMostRecentStartedAt) >= (b getMostRecentStartedAt) ]).
+    ].
+    
+    "4) Parámetros de escala"
+    minJobs := 1.
+    maxJobs := 50.
+    spacing := 5.
+    conclusionSpacing := 100.
+    titleSpacing := 40.
+    
+    "5) Normalización: recolectar tiempos y jobs de TODOS los runners"
+    runnerTimes := runners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "6) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    
+    "7) Posicionar por conclusiones"
+    currentX := 0.
+    currentY := 0.
+    maxWidth := 0.
+    
+    "Ordenar conclusiones: success, failure, cancelled, etc."
+    (groupedRunners keys asSortedCollection) do: [ :conclusion |
+        | conclusionRunners conclusionBoxes conclusionCurrentX conclusionRowHeight
+          conclusionTitle separator totalTimeLost |
+        
+        conclusionRunners := groupedRunners at: conclusion.
+        conclusionBoxes := OrderedCollection new.
+        
+        "a) Calcular tiempo perdido para esta conclusión (si es failure)"
+        totalTimeLost := 0.
+        (conclusion = 'failure') ifTrue: [
+            totalTimeLost := conclusionRunners inject: 0 into: [ :sum :runner |
+                sum + runner getTotalExecutionTime ].
+        ].
+        
+        "b) Crear título de la conclusión"
+        conclusionTitle := RSLabel new
+            text: conclusion, ' (', conclusionRunners size printString, ' runs', 
+                  (totalTimeLost > 0 ifTrue: [' - Lost: ', (totalTimeLost / 60.0) rounded printString, ' min'] ifFalse: ['']), ')';
+            fontSize: 14;
+            color: (self getColorForConclusion: conclusion base: Color black);
+            translateTo: 10 @ (currentY + 10).
+        canvas add: conclusionTitle.
+        
+        "c) Ajustar Y para las cajas de la conclusión"
+        currentY := currentY + titleSpacing.
+        conclusionCurrentX := 0.
+        conclusionRowHeight := 0.
+        
+        "d) Crear cajas para esta conclusión"
+        conclusionRunners do: [ :runner |
+            | jobs time steps w h color box |
+            
+            "Métricas"
+            time := runner getTotalExecutionTime.
+            jobs := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs size) ].
+            steps := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+            
+            "Calcular dimensiones: Tiempo como ancho, Jobs como altura"
+            "Ancho = tiempo de ejecución (se normalizará después)"
+            w := (time max: 1).
+            "Alto = número de jobs"
+            h := (jobs max: 1) * 8.
+            
+            "Color según conclusión"
+            color := self getColorForConclusion: runner conclusion base: Color white.
+            
+            "Crear caja"
+            box := RSBox new
+                width: w;
+                height: h;
+                color: color;
+                model: runner.
+            
+            "Popup con info"
+            box @ (RSPopup text: [ :r |
+                'Name: ', r name asString, String cr,
+                'Workflow: ', r workflow name asString, String cr,
+                'Conclusion: ', r conclusion asString, String cr,
+                'Status: ', r status asString, String cr,
+                'Execution Time: ', time asString, 's', String cr,
+                'Jobs: ', jobs asString, String cr,
+                'Steps: ', steps asString ]).
+            
+            "Click para detalles"
+            box @ RSHighlightable new.
+            box
+                when: RSMouseClick
+                do: [ :evt | self showRunnerDetails: evt shape model ]
+                for: self.
+            
+            conclusionBoxes add: box.
+            allBoxes add: box.
+        ].
+        
+        "e) Normalizar ANCHO de las cajas de esta conclusión (tiempo de ejecución)"
+        RSNormalizer width
+            shapes: conclusionBoxes;
+            from: 10;
+            to: 400;
+            normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+        
+        "f) Posicionar cajas de la conclusión"
+        conclusionBoxes do: [ :box |
+            | w h |
+            w := box width.
+            h := box height.
+            
+            "Posicionar caja"
+            box translateTo: (conclusionCurrentX + (w / 2)) @ (currentY + (h / 2)).
+            
+            "Agregar al canvas"
+            canvas add: box.
+            
+            "Actualizar coordenadas"
+            conclusionCurrentX := conclusionCurrentX + w + spacing.
+            maxWidth := maxWidth max: conclusionCurrentX.
+            conclusionRowHeight := conclusionRowHeight max: h.
+        ].
+        
+        "g) Ajustar Y para la siguiente conclusión"
+        currentY := currentY + conclusionRowHeight + conclusionSpacing.
+        
+        "h) Agregar línea separadora entre conclusiones"
+        separator := RSLine new
+            startPoint: 0 @ (currentY - (conclusionSpacing / 2));
+            endPoint: maxWidth @ (currentY - (conclusionSpacing / 2));
+            color: Color lightGray.
+        canvas add: separator.
+    ].
+    
+    "8) Título principal"
+    canvas add: (RSLabel new
+        text: 'GH Runs by Conclusion – Polymetric View (', runners size printString, ' total runs. Time on X, Jobs on Y)';
+        fontSize: 18;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ -30).
+    
+    "9) Leyenda"
+    self addLegendTo: canvas at: maxWidth + 20 @ 0.
+    
+    "10) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
 
-	^ canvas open
+{ #category : 'public' }
+GHRunnerCollection >> polymetricViewByConclusionJobsHeight: workflowName [
+    "Visualización poliométrica agrupada por conclusión: Jobs como altura, Tiempo como ancho"
+    | canvas groupedRunners minTime maxTime minJobs maxJobs 
+      spacing currentX currentY maxWidth rowHeight runnerTimes allBoxes
+      conclusionSpacing titleSpacing filteredRunners |
+    
+    "1) Filtrar runners por workflow específico"
+    filteredRunners := runners select: [ :runner |
+        runner workflow name = workflowName ].
+    
+    "Validar que existan runners para este workflow"
+    filteredRunners isEmpty ifTrue: [
+        ^ self inform: 'No runs found for workflow: ', workflowName ].
+    
+    "2) Inicialización"
+    canvas := RSCanvas new.
+    
+    "3) Agrupar runners filtrados por conclusión"
+    groupedRunners := Dictionary new.
+    filteredRunners do: [ :runner |
+        | conclusion conclusionCollection |
+        conclusion := runner conclusion.
+        conclusionCollection := groupedRunners
+            at: conclusion
+            ifAbsentPut: [ OrderedCollection new ].
+        conclusionCollection add: runner.
+    ].
+    
+    "4) Ordenar cada grupo por fecha de inicio"
+    groupedRunners keysAndValuesDo: [ :conclusion :runnerList |
+        groupedRunners
+            at: conclusion
+            put: (runnerList asSortedCollection: [ :a :b |
+                (a getMostRecentStartedAt) >= (b getMostRecentStartedAt) ]).
+    ].
+    
+    "5) Parámetros de escala"
+    minJobs := 1.
+    maxJobs := 50.
+    spacing := 10.
+    conclusionSpacing := 100.
+    titleSpacing := 40.
+    
+    "6) Normalización: recolectar tiempos y jobs de los runners filtrados"
+    runnerTimes := filteredRunners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "6) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    
+    "7) Posicionar por conclusiones"
+    currentX := 0.
+    currentY := 0.
+    maxWidth := 0.
+    
+    "Ordenar conclusiones: success, failure, cancelled, etc."
+    (groupedRunners keys asSortedCollection) do: [ :conclusion |
+        | conclusionRunners conclusionBoxes conclusionCurrentX conclusionRowHeight
+          conclusionTitle separator totalTimeLost |
+        
+        conclusionRunners := groupedRunners at: conclusion.
+        conclusionBoxes := OrderedCollection new.
+        
+        "a) Calcular tiempo perdido para esta conclusión (si es failure)"
+        totalTimeLost := 0.
+        (conclusion = 'failure') ifTrue: [
+            totalTimeLost := conclusionRunners inject: 0 into: [ :sum :runner |
+                sum + runner getTotalExecutionTime ].
+        ].
+        
+        "b) Crear título de la conclusión"
+        conclusionTitle := RSLabel new
+            text: conclusion, ' (', conclusionRunners size printString, ' runs', 
+                  (totalTimeLost > 0 ifTrue: [' - Lost: ', (totalTimeLost / 60.0) rounded printString, ' min'] ifFalse: ['']), ')';
+            fontSize: 14;
+            color: (self getColorForConclusion: conclusion base: Color black);
+            translateTo: 10 @ (currentY + 10).
+        canvas add: conclusionTitle.
+        
+        "c) Ajustar Y para las cajas de la conclusión"
+        currentY := currentY + titleSpacing.
+        conclusionCurrentX := 0.
+        conclusionRowHeight := 0.
+        
+        "d) Crear cajas para esta conclusión"
+        conclusionRunners do: [ :runner |
+            | jobs time steps w h color box |
+            
+            "Métricas"
+            time := runner getTotalExecutionTime.
+            jobs := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs size) ].
+            steps := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+            
+            "Calcular dimensiones: Tiempo como ancho, Jobs como altura"
+            "Ancho = tiempo de ejecución (se normalizará después)"
+            w := (time max: 1).
+            "Alto = número de jobs"
+            h := (jobs max: 1) * 8.
+            
+            "Color según conclusión"
+            color := self getColorForConclusion: runner conclusion base: Color white.
+            
+            "Crear caja"
+            box := RSBox new
+                width: w;
+                height: h;
+                color: color;
+                model: runner.
+            
+            "Popup con info"
+            box @ (RSPopup text: [ :r |
+                'Name: ', r name asString, String cr,
+                'Workflow: ', r workflow name asString, String cr,
+                'Conclusion: ', r conclusion asString, String cr,
+                'Status: ', r status asString, String cr,
+                'Execution Time: ', time asString, 's', String cr,
+                'Jobs: ', jobs asString, String cr,
+                'Steps: ', steps asString ]).
+            
+            "Click para detalles"
+            box @ RSHighlightable new.
+            box
+                when: RSMouseClick
+                do: [ :evt | self showRunnerDetails: evt shape model ]
+                for: self.
+            
+            conclusionBoxes add: box.
+            allBoxes add: box.
+        ].
+        
+        "e) Normalizar ANCHO de las cajas de esta conclusión (tiempo de ejecución)"
+        RSNormalizer width
+            shapes: conclusionBoxes;
+            from: 10;
+            to: 400;
+            normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+        
+        "f) Posicionar cajas de la conclusión con salto de línea"
+        conclusionBoxes do: [ :box |
+            | w h |
+            w := box width.
+            h := box height.
+            
+            "Wrap de línea si la siguiente caja sobrepasa 6000px"
+            (conclusionCurrentX + w) > 6000 ifTrue: [
+                conclusionCurrentX := 0.
+                currentY := currentY + conclusionRowHeight + 20.
+                conclusionRowHeight := 0.
+            ].
+            
+            "Posicionar caja"
+            box translateTo: (conclusionCurrentX + (w / 2)) @ (currentY + (h / 2)).
+            
+            "Agregar al canvas"
+            canvas add: box.
+            
+            "Actualizar coordenadas"
+            conclusionCurrentX := conclusionCurrentX + w + spacing.
+            maxWidth := maxWidth max: conclusionCurrentX.
+            conclusionRowHeight := conclusionRowHeight max: h.
+        ].
+        
+        "g) Ajustar Y para la siguiente conclusión"
+        currentY := currentY + conclusionRowHeight + conclusionSpacing.
+        
+        "h) Agregar línea separadora entre conclusiones"
+        separator := RSLine new
+            startPoint: 0 @ (currentY - (conclusionSpacing / 2));
+            endPoint: maxWidth @ (currentY - (conclusionSpacing / 2));
+            color: Color lightGray.
+        canvas add: separator.
+    ].
+    
+    "8) Título principal"
+    canvas add: (RSLabel new
+        text: 'GH Runs by Conclusion – Polymetric View (', runners size printString, ' total runs. Time on X, Jobs on Y)';
+        fontSize: 18;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ -30).
+    
+    "9) Leyenda"
+    self addLegendTo: canvas at: maxWidth + 20 @ 0.
+    
+    "10) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> polymetricViewByConclusionJobsXTimeY: workflowName [
+    "Visualización poliométrica agrupada por conclusión: Tiempo como altura, Jobs como ancho"
+    | canvas groupedRunners minTime maxTime minJobs maxJobs 
+      spacing currentX currentY maxWidth rowHeight runnerTimes allBoxes
+      conclusionSpacing titleSpacing filteredRunners |
+    
+    "1) Filtrar runners por workflow específico"
+    filteredRunners := runners select: [ :runner |
+        runner workflow name = workflowName ].
+    
+    "Validar que existan runners para este workflow"
+    filteredRunners isEmpty ifTrue: [
+        ^ self inform: 'No runs found for workflow: ', workflowName ].
+    
+    "2) Inicialización"
+    canvas := RSCanvas new.
+    
+    "3) Agrupar runners filtrados por conclusión"
+    groupedRunners := Dictionary new.
+    filteredRunners do: [ :runner |
+        | conclusion conclusionCollection |
+        conclusion := runner conclusion.
+        conclusionCollection := groupedRunners
+            at: conclusion
+            ifAbsentPut: [ OrderedCollection new ].
+        conclusionCollection add: runner.
+    ].
+    
+    "4) Ordenar cada grupo por fecha de inicio"
+    groupedRunners keysAndValuesDo: [ :conclusion :runnerList |
+        groupedRunners
+            at: conclusion
+            put: (runnerList asSortedCollection: [ :a :b |
+                (a getMostRecentStartedAt) >= (b getMostRecentStartedAt) ]).
+    ].
+    
+    "5) Parámetros de escala"
+    minJobs := 1.
+    maxJobs := 50.
+    spacing := 10.
+    conclusionSpacing := 100.
+    titleSpacing := 40.
+    
+    "6) Normalización: recolectar tiempos y jobs de los runners filtrados"
+    runnerTimes := filteredRunners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "6) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    
+    "7) Posicionar por conclusiones"
+    currentX := 0.
+    currentY := 0.
+    maxWidth := 0.
+    
+    "Ordenar conclusiones: success, failure, cancelled, etc."
+    (groupedRunners keys asSortedCollection) do: [ :conclusion |
+        | conclusionRunners conclusionBoxes conclusionCurrentX conclusionRowHeight
+          conclusionTitle separator totalTimeLost |
+        
+        conclusionRunners := groupedRunners at: conclusion.
+        conclusionBoxes := OrderedCollection new.
+        
+        "a) Calcular tiempo perdido para esta conclusión (si es failure)"
+        totalTimeLost := 0.
+        (conclusion = 'failure') ifTrue: [
+            totalTimeLost := conclusionRunners inject: 0 into: [ :sum :runner |
+                sum + runner getTotalExecutionTime ].
+        ].
+        
+        "b) Crear título de la conclusión"
+        conclusionTitle := RSLabel new
+            text: conclusion, ' (', conclusionRunners size printString, ' runs', 
+                  (totalTimeLost > 0 ifTrue: [' - Lost: ', (totalTimeLost / 60.0) rounded printString, ' min'] ifFalse: ['']), ')';
+            fontSize: 14;
+            color: (self getColorForConclusion: conclusion base: Color black);
+            translateTo: 10 @ (currentY + 10).
+        canvas add: conclusionTitle.
+        
+        "c) Ajustar Y para las cajas de la conclusión"
+        currentY := currentY + titleSpacing.
+        conclusionCurrentX := 0.
+        conclusionRowHeight := 0.
+        
+        "d) Crear cajas para esta conclusión"
+        conclusionRunners do: [ :runner |
+            | jobs time steps w h color box |
+            
+            "Métricas"
+            time := runner getTotalExecutionTime.
+            jobs := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs size) ].
+            steps := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+            
+            "Calcular dimensiones: Jobs como ancho, Tiempo como altura"
+            "Ancho = número de jobs"
+            w := (jobs max: 1) * 8.
+            "Alto = tiempo de ejecución (se normalizará después)"
+            h := (time max: 1).
+            
+            "Color según conclusión"
+            color := self getColorForConclusion: runner conclusion base: Color white.
+            
+            "Crear caja"
+            box := RSBox new
+                width: w;
+                height: h;
+                color: color;
+                model: runner.
+            
+            "Popup con info"
+            box @ (RSPopup text: [ :r |
+                'Name: ', r name asString, String cr,
+                'Workflow: ', r workflow name asString, String cr,
+                'Conclusion: ', r conclusion asString, String cr,
+                'Status: ', r status asString, String cr,
+                'Execution Time: ', time asString, 's', String cr,
+                'Jobs: ', jobs asString, String cr,
+                'Steps: ', steps asString ]).
+            
+            "Click para detalles"
+            box @ RSHighlightable new.
+            box
+                when: RSMouseClick
+                do: [ :evt | self showRunnerDetails: evt shape model ]
+                for: self.
+            
+            conclusionBoxes add: box.
+            allBoxes add: box.
+        ].
+        
+        "e) Normalizar ALTURA de las cajas de esta conclusión (tiempo de ejecución)"
+        RSNormalizer height
+            shapes: conclusionBoxes;
+            from: 10;
+            to: 200;
+            normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+        
+        "f) Posicionar cajas de la conclusión con salto de línea"
+        conclusionBoxes do: [ :box |
+            | w h |
+            w := box width.
+            h := box height.
+            
+            "Wrap de línea si la siguiente caja sobrepasa 6000px"
+            (conclusionCurrentX + w) > 6000 ifTrue: [
+                conclusionCurrentX := 0.
+                currentY := currentY + conclusionRowHeight + 20.
+                conclusionRowHeight := 0.
+            ].
+            
+            "Posicionar caja"
+            box translateTo: (conclusionCurrentX + (w / 2)) @ (currentY + (h / 2)).
+            
+            "Agregar al canvas"
+            canvas add: box.
+            
+            "Actualizar coordenadas"
+            conclusionCurrentX := conclusionCurrentX + w + spacing.
+            maxWidth := maxWidth max: conclusionCurrentX.
+            conclusionRowHeight := conclusionRowHeight max: h.
+        ].
+        
+        "g) Ajustar Y para la siguiente conclusión"
+        currentY := currentY + conclusionRowHeight + conclusionSpacing.
+        
+        "h) Agregar línea separadora entre conclusiones"
+        separator := RSLine new
+            startPoint: 0 @ (currentY - (conclusionSpacing / 2));
+            endPoint: maxWidth @ (currentY - (conclusionSpacing / 2));
+            color: Color lightGray.
+        canvas add: separator.
+    ].
+    
+    "8) Título principal"
+    canvas add: (RSLabel new
+        text: 'Workflow: ', workflowName, ' by Conclusion (', filteredRunners size printString, ' runs. Jobs on X, Time on Y)';
+        fontSize: 18;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ -30).
+    
+    "9) Leyenda"
+    self addLegendTo: canvas at: maxWidth + 20 @ 0.
+	 self addExportControlsTo: canvas at: maxWidth + 20 @ 100.
+    
+    "10) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> polymetricViewByConclusionJobsYTimeX: workflowName [
+    "Visualización poliométrica agrupada por conclusión: Jobs como altura, Tiempo como ancho"
+    | canvas groupedRunners minTime maxTime minJobs maxJobs 
+      spacing currentX currentY maxWidth rowHeight runnerTimes allBoxes
+      conclusionSpacing titleSpacing filteredRunners |
+    
+    "1) Filtrar runners por workflow específico"
+    filteredRunners := runners select: [ :runner |
+        runner workflow name = workflowName ].
+    
+    "Validar que existan runners para este workflow"
+    filteredRunners isEmpty ifTrue: [
+        ^ self inform: 'No runs found for workflow: ', workflowName ].
+    
+    "2) Inicialización"
+    canvas := RSCanvas new.
+    
+    "3) Agrupar runners filtrados por conclusión"
+    groupedRunners := Dictionary new.
+    filteredRunners do: [ :runner |
+        | conclusion conclusionCollection |
+        conclusion := runner conclusion.
+        conclusionCollection := groupedRunners
+            at: conclusion
+            ifAbsentPut: [ OrderedCollection new ].
+        conclusionCollection add: runner.
+    ].
+    
+    "4) Ordenar cada grupo por fecha de inicio"
+    groupedRunners keysAndValuesDo: [ :conclusion :runnerList |
+        groupedRunners
+            at: conclusion
+            put: (runnerList asSortedCollection: [ :a :b |
+                (a getMostRecentStartedAt) >= (b getMostRecentStartedAt) ]).
+    ].
+    
+    "5) Parámetros de escala"
+    minJobs := 1.
+    maxJobs := 50.
+    spacing := 10.
+    conclusionSpacing := 100.
+    titleSpacing := 40.
+    
+    "6) Normalización: recolectar tiempos y jobs de los runners filtrados"
+    runnerTimes := filteredRunners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "6) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    
+    "7) Posicionar por conclusiones"
+    currentX := 0.
+    currentY := 0.
+    maxWidth := 0.
+    
+    "Ordenar conclusiones: success, failure, cancelled, etc."
+    (groupedRunners keys asSortedCollection) do: [ :conclusion |
+        | conclusionRunners conclusionBoxes conclusionCurrentX conclusionRowHeight
+          conclusionTitle separator totalTimeLost |
+        
+        conclusionRunners := groupedRunners at: conclusion.
+        conclusionBoxes := OrderedCollection new.
+        
+        "a) Calcular tiempo perdido para esta conclusión (si es failure)"
+        totalTimeLost := 0.
+        (conclusion = 'failure') ifTrue: [
+            totalTimeLost := conclusionRunners inject: 0 into: [ :sum :runner |
+                sum + runner getTotalExecutionTime ].
+        ].
+        
+        "b) Crear título de la conclusión"
+        conclusionTitle := RSLabel new
+            text: conclusion, ' (', conclusionRunners size printString, ' runs', 
+                  (totalTimeLost > 0 ifTrue: [' - Lost: ', (totalTimeLost / 60.0) rounded printString, ' min'] ifFalse: ['']), ')';
+            fontSize: 14;
+            color: (self getColorForConclusion: conclusion base: Color black);
+            translateTo: 10 @ (currentY + 10).
+        canvas add: conclusionTitle.
+        
+        "c) Ajustar Y para las cajas de la conclusión"
+        currentY := currentY + titleSpacing.
+        conclusionCurrentX := 0.
+        conclusionRowHeight := 0.
+        
+        "d) Crear cajas para esta conclusión"
+        conclusionRunners do: [ :runner |
+            | jobs time steps w h color box |
+            
+            "Métricas"
+            time := runner getTotalExecutionTime.
+            jobs := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs size) ].
+            steps := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+            
+            "Calcular dimensiones: Tiempo como ancho, Jobs como altura"
+            "Ancho = tiempo de ejecución (se normalizará después)"
+            w := (time max: 1).
+            "Alto = número de jobs"
+            h := (jobs max: 1) * 8.
+            
+            "Color según conclusión"
+            color := self getColorForConclusion: runner conclusion base: Color white.
+            
+            "Crear caja"
+            box := RSBox new
+                width: w;
+                height: h;
+                color: color;
+                model: runner.
+            
+            "Popup con info"
+            box @ (RSPopup text: [ :r |
+                'Name: ', r name asString, String cr,
+                'Workflow: ', r workflow name asString, String cr,
+                'Conclusion: ', r conclusion asString, String cr,
+                'Status: ', r status asString, String cr,
+                'Execution Time: ', time asString, 's', String cr,
+                'Jobs: ', jobs asString, String cr,
+                'Steps: ', steps asString ]).
+            
+            "Click para detalles"
+            box @ RSHighlightable new.
+            box
+                when: RSMouseClick
+                do: [ :evt | self showRunnerDetails: evt shape model ]
+                for: self.
+            
+            conclusionBoxes add: box.
+            allBoxes add: box.
+        ].
+        
+        "e) Normalizar ANCHO de las cajas de esta conclusión (tiempo de ejecución)"
+        RSNormalizer width
+            shapes: conclusionBoxes;
+            from: 10;
+            to: 400;
+            normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+        
+        "f) Posicionar cajas de la conclusión con salto de línea"
+        conclusionBoxes do: [ :box |
+            | w h |
+            w := box width.
+            h := box height.
+            
+            "Wrap de línea si la siguiente caja sobrepasa 6000px"
+            (conclusionCurrentX + w) > 6000 ifTrue: [
+                conclusionCurrentX := 0.
+                currentY := currentY + conclusionRowHeight + 20.
+                conclusionRowHeight := 0.
+            ].
+            
+            "Posicionar caja"
+            box translateTo: (conclusionCurrentX + (w / 2)) @ (currentY + (h / 2)).
+            
+            "Agregar al canvas"
+            canvas add: box.
+            
+            "Actualizar coordenadas"
+            conclusionCurrentX := conclusionCurrentX + w + spacing.
+            maxWidth := maxWidth max: conclusionCurrentX.
+            conclusionRowHeight := conclusionRowHeight max: h.
+        ].
+        
+        "g) Ajustar Y para la siguiente conclusión"
+        currentY := currentY + conclusionRowHeight + conclusionSpacing.
+        
+        "h) Agregar línea separadora entre conclusiones"
+        separator := RSLine new
+            startPoint: 0 @ (currentY - (conclusionSpacing / 2));
+            endPoint: maxWidth @ (currentY - (conclusionSpacing / 2));
+            color: Color lightGray.
+        canvas add: separator.
+    ].
+    
+    "8) Título principal"
+    canvas add: (RSLabel new
+        text: 'GH Runs by Conclusion – Polymetric View (', runners size printString, ' total runs. Time on X, Jobs on Y)';
+        fontSize: 18;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ -30).
+    
+    "9) Leyenda"
+    self addLegendTo: canvas at: maxWidth + 20 @ 0.
+    self addExportControlsTo: canvas at: maxWidth + 20 @ 100.
+    "10) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
+
+{ #category : 'as yet unclassified' }
+GHRunnerCollection >> polymetricViewByConclusionTimeHeight [
+    "Visualización poliométrica agrupada por conclusión: Tiempo como altura, Jobs como ancho"
+    | canvas groupedRunners minTime maxTime minJobs maxJobs 
+      spacing currentX currentY maxWidth rowHeight runnerTimes allBoxes
+      conclusionSpacing titleSpacing |
+    
+    "1) Inicialización"
+    canvas := RSCanvas new.
+    
+    "2) Agrupar runners por conclusión"
+    groupedRunners := Dictionary new.
+    runners do: [ :runner |
+        | conclusion conclusionCollection |
+        conclusion := runner conclusion.
+        conclusionCollection := groupedRunners
+            at: conclusion
+            ifAbsentPut: [ OrderedCollection new ].
+        conclusionCollection add: runner.
+    ].
+    
+    "3) Ordenar cada grupo por fecha de inicio"
+    groupedRunners keysAndValuesDo: [ :conclusion :runnerList |
+        groupedRunners
+            at: conclusion
+            put: (runnerList asSortedCollection: [ :a :b |
+                (a getMostRecentStartedAt) >= (b getMostRecentStartedAt) ]).
+    ].
+    
+    "4) Parámetros de escala"
+    minJobs := 1.
+    maxJobs := 50.
+    spacing := 5.
+    conclusionSpacing := 100.
+    titleSpacing := 40.
+    
+    "5) Normalización: recolectar tiempos y jobs de TODOS los runners"
+    runnerTimes := runners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "6) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    
+    "7) Posicionar por conclusiones"
+    currentX := 0.
+    currentY := 0.
+    maxWidth := 0.
+    
+    "Ordenar conclusiones: success, failure, cancelled, etc."
+    (groupedRunners keys asSortedCollection) do: [ :conclusion |
+        | conclusionRunners conclusionBoxes conclusionCurrentX conclusionRowHeight
+          conclusionTitle separator totalTimeLost |
+        
+        conclusionRunners := groupedRunners at: conclusion.
+        conclusionBoxes := OrderedCollection new.
+        
+        "a) Calcular tiempo perdido para esta conclusión (si es failure)"
+        totalTimeLost := 0.
+        (conclusion = 'failure') ifTrue: [
+            totalTimeLost := conclusionRunners inject: 0 into: [ :sum :runner |
+                sum + runner getTotalExecutionTime ].
+        ].
+        
+        "b) Crear título de la conclusión"
+        conclusionTitle := RSLabel new
+            text: conclusion, ' (', conclusionRunners size printString, ' runs', 
+                  (totalTimeLost > 0 ifTrue: [' - Lost: ', (totalTimeLost / 60.0) rounded printString, ' min'] ifFalse: ['']), ')';
+            fontSize: 14;
+            color: (self getColorForConclusion: conclusion base: Color black);
+            translateTo: 10 @ (currentY + 10).
+        canvas add: conclusionTitle.
+        
+        "c) Ajustar Y para las cajas de la conclusión"
+        currentY := currentY + titleSpacing.
+        conclusionCurrentX := 0.
+        conclusionRowHeight := 0.
+        
+        "d) Crear cajas para esta conclusión"
+        conclusionRunners do: [ :runner |
+            | jobs time steps w h color box |
+            
+            "Métricas"
+            time := runner getTotalExecutionTime.
+            jobs := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs size) ].
+            steps := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+            
+            "Calcular dimensiones: Jobs como ancho, Tiempo como altura"
+            "Ancho = número de jobs"
+            w := (jobs max: 1) * 8.
+            "Alto = tiempo de ejecución (se normalizará después)"
+            h := (time max: 1).
+            
+            "Color según conclusión"
+            color := self getColorForConclusion: runner conclusion base: Color white.
+            
+            "Crear caja"
+            box := RSBox new
+                width: w;
+                height: h;
+                color: color;
+                model: runner.
+            
+            "Popup con info"
+            box @ (RSPopup text: [ :r |
+                'Name: ', r name asString, String cr,
+                'Workflow: ', r workflow name asString, String cr,
+                'Conclusion: ', r conclusion asString, String cr,
+                'Status: ', r status asString, String cr,
+                'Execution Time: ', time asString, 's', String cr,
+                'Jobs: ', jobs asString, String cr,
+                'Steps: ', steps asString ]).
+            
+            "Click para detalles"
+            box @ RSHighlightable new.
+            box
+                when: RSMouseClick
+                do: [ :evt | self showRunnerDetails: evt shape model ]
+                for: self.
+            
+            conclusionBoxes add: box.
+            allBoxes add: box.
+        ].
+        
+        "e) Normalizar ALTURA de las cajas de esta conclusión (tiempo de ejecución)"
+        RSNormalizer height
+            shapes: conclusionBoxes;
+            from: 10;
+            to: 200;
+            normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+        
+        "f) Posicionar cajas de la conclusión con salto de línea"
+        conclusionBoxes do: [ :box |
+            | w h |
+            w := box width.
+            h := box height.
+            
+            "Wrap de línea si la siguiente caja sobrepasa 6000px"
+            (conclusionCurrentX + w) > 6000 ifTrue: [
+                conclusionCurrentX := 0.
+                currentY := currentY + conclusionRowHeight + 20.
+                conclusionRowHeight := 0.
+            ].
+            
+            "Posicionar caja"
+            box translateTo: (conclusionCurrentX + (w / 2)) @ (currentY + (h / 2)).
+            
+            "Agregar al canvas"
+            canvas add: box.
+            
+            "Actualizar coordenadas"
+            conclusionCurrentX := conclusionCurrentX + w + spacing.
+            maxWidth := maxWidth max: conclusionCurrentX.
+            conclusionRowHeight := conclusionRowHeight max: h.
+        ].
+        
+        "g) Ajustar Y para la siguiente conclusión"
+        currentY := currentY + conclusionRowHeight + conclusionSpacing.
+        
+        "h) Agregar línea separadora entre conclusiones"
+        separator := RSLine new
+            startPoint: 0 @ (currentY - (conclusionSpacing / 2));
+            endPoint: maxWidth @ (currentY - (conclusionSpacing / 2));
+            color: Color lightGray.
+        canvas add: separator.
+    ].
+    
+    "8) Título principal"
+    canvas add: (RSLabel new
+        text: 'GH Runs by Conclusion – Polymetric View (', runners size printString, ' total runs. Jobs on X, Time on Y)';
+        fontSize: 18;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ -30).
+    
+    "9) Leyenda"
+    self addLegendTo: canvas at: maxWidth + 20 @ 0.
+    
+    "10) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
+
+{ #category : 'as yet unclassified' }
+GHRunnerCollection >> polymetricViewByConclusionTimeHeight: workflowName [
+    "Visualización poliométrica agrupada por conclusión: Tiempo como altura, Jobs como ancho"
+    | canvas groupedRunners minTime maxTime minJobs maxJobs 
+      spacing currentX currentY maxWidth rowHeight runnerTimes allBoxes
+      conclusionSpacing titleSpacing filteredRunners |
+    
+    "1) Filtrar runners por workflow específico"
+    filteredRunners := runners select: [ :runner |
+        runner workflow name = workflowName ].
+    
+    "Validar que existan runners para este workflow"
+    filteredRunners isEmpty ifTrue: [
+        ^ self inform: 'No runs found for workflow: ', workflowName ].
+    
+    "2) Inicialización"
+    canvas := RSCanvas new.
+    
+    "3) Agrupar runners filtrados por conclusión"
+    groupedRunners := Dictionary new.
+    filteredRunners do: [ :runner |
+        | conclusion conclusionCollection |
+        conclusion := runner conclusion.
+        conclusionCollection := groupedRunners
+            at: conclusion
+            ifAbsentPut: [ OrderedCollection new ].
+        conclusionCollection add: runner.
+    ].
+    
+    "4) Ordenar cada grupo por fecha de inicio"
+    groupedRunners keysAndValuesDo: [ :conclusion :runnerList |
+        groupedRunners
+            at: conclusion
+            put: (runnerList asSortedCollection: [ :a :b |
+                (a getMostRecentStartedAt) >= (b getMostRecentStartedAt) ]).
+    ].
+    
+    "5) Parámetros de escala"
+    minJobs := 1.
+    maxJobs := 50.
+    spacing := 10.
+    conclusionSpacing := 100.
+    titleSpacing := 40.
+    
+    "6) Normalización: recolectar tiempos y jobs de los runners filtrados"
+    runnerTimes := filteredRunners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "6) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    
+    "7) Posicionar por conclusiones"
+    currentX := 0.
+    currentY := 0.
+    maxWidth := 0.
+    
+    "Ordenar conclusiones: success, failure, cancelled, etc."
+    (groupedRunners keys asSortedCollection) do: [ :conclusion |
+        | conclusionRunners conclusionBoxes conclusionCurrentX conclusionRowHeight
+          conclusionTitle separator totalTimeLost |
+        
+        conclusionRunners := groupedRunners at: conclusion.
+        conclusionBoxes := OrderedCollection new.
+        
+        "a) Calcular tiempo perdido para esta conclusión (si es failure)"
+        totalTimeLost := 0.
+        (conclusion = 'failure') ifTrue: [
+            totalTimeLost := conclusionRunners inject: 0 into: [ :sum :runner |
+                sum + runner getTotalExecutionTime ].
+        ].
+        
+        "b) Crear título de la conclusión"
+        conclusionTitle := RSLabel new
+            text: conclusion, ' (', conclusionRunners size printString, ' runs', 
+                  (totalTimeLost > 0 ifTrue: [' - Lost: ', (totalTimeLost / 60.0) rounded printString, ' min'] ifFalse: ['']), ')';
+            fontSize: 14;
+            color: (self getColorForConclusion: conclusion base: Color black);
+            translateTo: 10 @ (currentY + 10).
+        canvas add: conclusionTitle.
+        
+        "c) Ajustar Y para las cajas de la conclusión"
+        currentY := currentY + titleSpacing.
+        conclusionCurrentX := 0.
+        conclusionRowHeight := 0.
+        
+        "d) Crear cajas para esta conclusión"
+        conclusionRunners do: [ :runner |
+            | jobs time steps w h color box |
+            
+            "Métricas"
+            time := runner getTotalExecutionTime.
+            jobs := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs size) ].
+            steps := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+            
+            "Calcular dimensiones: Jobs como ancho, Tiempo como altura"
+            "Ancho = número de jobs"
+            w := (jobs max: 1) * 8.
+            "Alto = tiempo de ejecución (se normalizará después)"
+            h := (time max: 1).
+            
+            "Color según conclusión"
+            color := self getColorForConclusion: runner conclusion base: Color white.
+            
+            "Crear caja"
+            box := RSBox new
+                width: w;
+                height: h;
+                color: color;
+                model: runner.
+            
+            "Popup con info"
+            box @ (RSPopup text: [ :r |
+                'Name: ', r name asString, String cr,
+                'Workflow: ', r workflow name asString, String cr,
+                'Conclusion: ', r conclusion asString, String cr,
+                'Status: ', r status asString, String cr,
+                'Execution Time: ', time asString, 's', String cr,
+                'Jobs: ', jobs asString, String cr,
+                'Steps: ', steps asString ]).
+            
+            "Click para detalles"
+            box @ RSHighlightable new.
+            box
+                when: RSMouseClick
+                do: [ :evt | self showRunnerDetails: evt shape model ]
+                for: self.
+            
+            conclusionBoxes add: box.
+            allBoxes add: box.
+        ].
+        
+        "e) Normalizar ALTURA de las cajas de esta conclusión (tiempo de ejecución)"
+        RSNormalizer height
+            shapes: conclusionBoxes;
+            from: 10;
+            to: 200;
+            normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+        
+        "f) Posicionar cajas de la conclusión con salto de línea"
+        conclusionBoxes do: [ :box |
+            | w h |
+            w := box width.
+            h := box height.
+            
+            "Wrap de línea si la siguiente caja sobrepasa 6000px"
+            (conclusionCurrentX + w) > 6000 ifTrue: [
+                conclusionCurrentX := 0.
+                currentY := currentY + conclusionRowHeight + 20.
+                conclusionRowHeight := 0.
+            ].
+            
+            "Posicionar caja"
+            box translateTo: (conclusionCurrentX + (w / 2)) @ (currentY + (h / 2)).
+            
+            "Agregar al canvas"
+            canvas add: box.
+            
+            "Actualizar coordenadas"
+            conclusionCurrentX := conclusionCurrentX + w + spacing.
+            maxWidth := maxWidth max: conclusionCurrentX.
+            conclusionRowHeight := conclusionRowHeight max: h.
+        ].
+        
+        "g) Ajustar Y para la siguiente conclusión"
+        currentY := currentY + conclusionRowHeight + conclusionSpacing.
+        
+        "h) Agregar línea separadora entre conclusiones"
+        separator := RSLine new
+            startPoint: 0 @ (currentY - (conclusionSpacing / 2));
+            endPoint: maxWidth @ (currentY - (conclusionSpacing / 2));
+            color: Color lightGray.
+        canvas add: separator.
+    ].
+    
+    "8) Título principal"
+    canvas add: (RSLabel new
+        text: 'Workflow: ', workflowName, ' by Conclusion (', filteredRunners size printString, ' runs. Jobs on X, Time on Y)';
+        fontSize: 18;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ -30).
+    
+    "9) Leyenda"
+    self addLegendTo: canvas at: maxWidth + 20 @ 0.
+    
+    "10) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> polymetricViewByWorkflowJobsX: workflowName [
+    | canvas filteredRunners minTime maxTime minJobs maxJobs spacing currentX currentY maxWidth rowHeight lineMaxWidth runnerTimes allBoxes oneHourWidth totalTimeLost |
+    
+    "1) Filtrar runners por workflow específico"
+    filteredRunners := runners select: [ :runner |
+        runner workflow name = workflowName ].
+    
+    "Validar que existan runners para este workflow"
+    filteredRunners isEmpty ifTrue: [
+        ^ self inform: 'No runs found for workflow: ', workflowName ].
+    
+    "2) Inicialización"
+    canvas := RSCanvas new.
+    
+    "3) Ordenar por fecha de inicio"
+    filteredRunners := filteredRunners asSortedCollection: [ :a :b |
+        (a getMostRecentStartedAt) >= (b getMostRecentStartedAt) ].
+    
+    "4) Parámetros de escala"
+    minJobs         := 1.
+    maxJobs         := 50.
+    oneHourWidth    := 3600.  "1 hora = 3600 segundos = ancho máximo antes de wrap"
+    lineMaxWidth    := oneHourWidth. "Anchura máxima antes de wrap (1 hora)"
+    spacing         := 0.     "Sin espacios horizontales entre runs"
+    
+    "5) Normalización: recolectar tiempos de los runners filtrados"
+    runnerTimes := filteredRunners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "6) Calcular tiempo perdido total (attempts con conclusion failure)"
+    totalTimeLost := filteredRunners inject: 0 into: [ :sum :runner |
+        sum + (runner attempts inject: 0 into: [ :attemptSum :attempt |
+            (attempt conclusion = 'failure') 
+                ifTrue: [ attemptSum + attempt getTotalExecutionTime ]
+                ifFalse: [ attemptSum ]
+        ])
+    ].
+    
+    "7) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    
+    "8) Posicionar las runs"
+    currentX := 0.
+    currentY := 80.  "Más espacio para el título y estadísticas"
+    maxWidth := 0.
+    rowHeight := 0.
+    
+    "9) Crear cajas para las runs del workflow"
+    filteredRunners do: [ :runner |
+        | jobs time steps w h color box |
+        
+        "Métricas"
+        time := runner getTotalExecutionTime.
+        jobs := runner attempts
+            inject: 0 into: [ :sum :att |
+                sum + (att jobs size) ].
+        steps := runner attempts
+            inject: 0 into: [ :sum :att |
+                sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+        
+        "Calcular dimensiones - EJES INVERTIDOS"
+        "Ancho = tiempo de ejecución (proporcional)"
+        w := (time max: 1).  "Se normalizará después"
+        "Alto = número de jobs"
+        h := (jobs max: 1) * 10.
+        
+        "Color según conclusión"
+        color := self getColorForConclusion: runner conclusion base: Color white.
+        
+        "Crear caja"
+        box := RSBox new
+            width: w;
+            height: h;
+            color: color;
+            model: runner.
+        
+        "Popup con info"
+        box @ (RSPopup text: [ :r |
+            'Name: ', r name asString, String cr,
+            'Workflow: ', r workflow name asString, String cr,
+            'Conclusion: ', r conclusion asString, String cr,
+            'Status: ', r status asString, String cr,
+            'Execution Time: ', time asString, 's', String cr,
+            'Jobs: ', jobs asString, String cr,
+            'Steps: ', steps asString ]).
+        
+        "Click para detalles"
+        box @ RSHighlightable new.
+        box
+            when: RSMouseClick
+            do: [ :evt | self showRunnerDetails: evt shape model ]
+            for: self.
+        
+        allBoxes add: box.
+    ].
+    
+    "10) Normalizar ANCHO de las cajas (tiempo de ejecución)"
+    RSNormalizer width
+        shapes: allBoxes;
+        from: 10;  "Ancho mínimo"
+        to: 600;   "Ancho máximo"
+        normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+    
+    "11) Posicionar cajas"
+    allBoxes do: [ :box |
+        | w h |
+        w := box width.
+        h := box height.
+        
+        "Wrap de línea si la siguiente caja sobrepasa lineMaxWidth (1 hora)"
+        (currentX + w) > lineMaxWidth ifTrue: [
+            currentX := 0.
+            currentY := currentY + rowHeight + 20.  "Espacio vertical entre filas"
+            rowHeight := 0.
+        ].
+        
+        "Posicionar caja"
+        box translateTo: (currentX + (w / 2)) @ (currentY + (h / 2)).
+        
+        "Agregar al canvas"
+        canvas add: box.
+        
+        "Actualizar coordenadas - SIN SPACING horizontal"
+        currentX := currentX + w + spacing.
+        maxWidth := maxWidth max: currentX.
+        rowHeight := rowHeight max: h.
+    ].
+    
+    "12) Título principal"
+    canvas add: (RSLabel new
+        text: 'Workflow: ', workflowName, ' (', filteredRunners size printString, ' runs - Time on X, Jobs on Y)';
+        fontSize: 18;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ 10).
+    
+    "13) Mostrar tiempo perdido total"
+    canvas add: (RSLabel new
+        text: 'Total Time Lost (failures): ', (totalTimeLost / 60.0) rounded printString, ' minutes (', totalTimeLost printString, ' seconds)';
+        fontSize: 14;
+        color: Color red;
+        translateTo: (maxWidth / 2) @ 30).
+    
+    "14) Mostrar estadísticas adicionales"
+    canvas add: (RSLabel new
+        text: 'Total Execution Time: ', (runnerTimes sum / 60.0) rounded printString, ' minutes | Loss Rate: ', ((totalTimeLost / runnerTimes sum) * 100.0) rounded printString, '%';
+        fontSize: 12;
+        color: Color darkGray;
+        translateTo: (maxWidth / 2) @ 50).
+    
+    "15) Leyenda"
+    self addLegendTo: canvas at: maxWidth + 20 @ 80.
+    
+    "16) Agregar indicador de escala de tiempo"
+    canvas add: (RSLabel new
+        text: 'Max width = 1 hour';
+        fontSize: 12;
+        color: Color gray;
+        translateTo: (maxWidth / 2) @ 65).
+    
+    "17) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> polymetricViewByWorkflowsJobsX [
+    | canvas groupedRunners minTime maxTime minJobs maxJobs spacing currentX currentY maxWidth rowHeight lineMaxWidth runnerTimes allBoxes workflowSpacing titleSpacing |
+    
+    "1) Inicialización"
+    canvas := RSCanvas new.
+    
+    "2) Agrupar runners por workflow"
+    groupedRunners := Dictionary new.
+    runners do: [ :runner |
+        | workflowName workflowCollection |
+        workflowName := runner workflow name.
+        workflowCollection := groupedRunners
+            at: workflowName
+            ifAbsentPut: [ OrderedCollection new ].
+        workflowCollection add: runner.
+    ].
+    
+    "3) Ordenar cada grupo por fecha de inicio"
+    groupedRunners keysAndValuesDo: [ :workflowName :runnerList |
+        groupedRunners
+            at: workflowName
+            put: (runnerList asSortedCollection: [ :a :b |
+                (a getMostRecentStartedAt) >= (b getMostRecentStartedAt) ]).
+    ].
+    
+    "4) Parámetros de escala"
+    minJobs         := 1.
+    maxJobs         := 50.
+    lineMaxWidth    := 6000.  "Ancho máximo fijo de 6000px"
+    spacing         := 10.    "Espacios horizontales entre runs"
+    workflowSpacing := 100.   "Espacio extra entre workflows"
+    titleSpacing    := 40.    "Espacio para títulos de workflow"
+    
+    "5) Normalización: recolectar tiempos de TODOS los runners"
+    runnerTimes := runners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "6) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    
+    "7) Posicionar por workflows"
+    currentX := 0.
+    currentY := 0.
+    maxWidth := 0.
+    
+    "Ordenar workflows por nombre para consistencia"
+    (groupedRunners keys asSortedCollection) do: [ :workflowName |
+        | workflowRunners workflowBoxes workflowCurrentX workflowRowHeight workflowTitle separator |
+        
+        workflowRunners := groupedRunners at: workflowName.
+        workflowBoxes := OrderedCollection new.
+        
+        "a) Crear título del workflow"
+        workflowTitle := RSLabel new
+            text: workflowName, ' (', workflowRunners size printString, ' runs)';
+            fontSize: 14;
+            color: Color blue;
+            translateTo: 10 @ (currentY + 10).
+        canvas add: workflowTitle.
+        
+        "b) Ajustar Y para las cajas del workflow"
+        currentY := currentY + titleSpacing.
+        workflowCurrentX := 0.
+        workflowRowHeight := 0.
+        
+        "c) Crear cajas para este workflow"
+        workflowRunners do: [ :runner |
+            | jobs time steps w h color box |
+            
+            "Métricas"
+            time := runner getTotalExecutionTime.
+            jobs := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs size) ].
+            steps := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+            
+            "Calcular dimensiones - EJES INVERTIDOS"
+            "Ancho = tiempo de ejecución (proporcional)"
+            w := (time max: 1).  "Se normalizará después"
+            "Alto = número de jobs"
+            h := (jobs max: 1) * 10.
+            
+            "Color según conclusión"
+            color := self getColorForConclusion: runner conclusion base: Color white.
+            
+            "Crear caja"
+            box := RSBox new
+                width: w;
+                height: h;
+                color: color;
+                model: runner.
+            
+            "Popup con info"
+            box @ (RSPopup text: [ :r |
+                'Name: ', r name asString, String cr,
+                'Workflow: ', r workflow name asString, String cr,
+                'Conclusion: ', r conclusion asString, String cr,
+                'Status: ', r status asString, String cr,
+                'Execution Time: ', time asString, 's', String cr,
+                'Jobs: ', jobs asString, String cr,
+                'Steps: ', steps asString ]).
+            
+            "Click para detalles"
+            box @ RSHighlightable new.
+            box
+                when: RSMouseClick
+                do: [ :evt | self showRunnerDetails: evt shape model ]
+                for: self.
+            
+            workflowBoxes add: box.
+            allBoxes add: box.
+        ].
+        
+        "d) Normalizar ANCHO de las cajas de este workflow (tiempo de ejecución)"
+        RSNormalizer width
+            shapes: workflowBoxes;
+            from: 10;  "Ancho mínimo"
+            to: 600;   "Ancho máximo"
+            normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+        
+        "e) Posicionar cajas del workflow"
+        workflowBoxes do: [ :box |
+            | w h |
+            w := box width.
+            h := box height.
+            
+            "Wrap de línea si la siguiente caja sobrepasa lineMaxWidth (6000px)"
+            (workflowCurrentX + w) > lineMaxWidth ifTrue: [
+                workflowCurrentX := 0.
+                currentY := currentY + workflowRowHeight + 20.  "Espacio vertical entre filas"
+                workflowRowHeight := 0.
+            ].
+            
+            "Posicionar caja"
+            box translateTo: (workflowCurrentX + (w / 2)) @ (currentY + (h / 2)).
+            
+            "Agregar al canvas"
+            canvas add: box.
+            
+            "Actualizar coordenadas con spacing horizontal"
+            workflowCurrentX := workflowCurrentX + w + spacing.
+            maxWidth := maxWidth max: workflowCurrentX.
+            workflowRowHeight := workflowRowHeight max: h.
+        ].
+        
+        "f) Ajustar Y para el siguiente workflow"
+        currentY := currentY + workflowRowHeight + workflowSpacing.
+        
+        "g) Agregar línea separadora entre workflows (opcional)"
+        separator := RSLine new
+            startPoint: 0 @ (currentY - (workflowSpacing / 2));
+            endPoint: maxWidth @ (currentY - (workflowSpacing / 2));
+            color: Color lightGray.
+        canvas add: separator.
+    ].
+    
+    "8) Título principal"
+    canvas add: (RSLabel new
+        text: 'GH Runs by Workflow – Polymetric View (', runners size printString, ' total runs. Time on X, Jobs on Y)';
+        fontSize: 18;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ -30).
+    
+    "9) Leyenda actualizada"
+    self addLegendTo: canvas at: maxWidth + 20 @ 0.
+    
+    "10) Agregar indicador de escala"
+    canvas add: (RSLabel new
+        text: 'Max width = 6000px';
+        fontSize: 12;
+        color: Color gray;
+        translateTo: (maxWidth / 2) @ -10).
+    
+    "11) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> polymetricViewByWorkflowsJobsXTimeY [
+    | canvas groupedRunners minTime maxTime minJobs maxJobs spacing currentX currentY maxWidth rowHeight lineMaxWidth runnerTimes allBoxes workflowSpacing titleSpacing |
+    
+    "1) Inicialización"
+    canvas := RSCanvas new.
+    
+    "2) Agrupar runners por workflow"
+    groupedRunners := Dictionary new.
+    runners do: [ :runner |
+        | workflowName workflowCollection |
+        workflowName := runner workflow name.
+        workflowCollection := groupedRunners
+            at: workflowName
+            ifAbsentPut: [ OrderedCollection new ].
+        workflowCollection add: runner.
+    ].
+    
+    "3) Ordenar cada grupo por fecha de inicio"
+    groupedRunners keysAndValuesDo: [ :workflowName :runnerList |
+        groupedRunners
+            at: workflowName
+            put: (runnerList asSortedCollection: [ :a :b |
+                (a getMostRecentStartedAt) >= (b getMostRecentStartedAt) ]).
+    ].
+    
+    "4) Parámetros de escala"
+    minJobs         := 1.
+    maxJobs         := 50.
+    lineMaxWidth    := 6000.  "Ancho máximo fijo de 6000px"
+    spacing         := 10.    "Espacios horizontales entre runs"
+    workflowSpacing := 100.   "Espacio extra entre workflows"
+    titleSpacing    := 40.    "Espacio para títulos de workflow"
+    
+    "5) Normalización: recolectar tiempos de TODOS los runners"
+    runnerTimes := runners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "6) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    
+    "7) Posicionar por workflows"
+    currentX := 0.
+    currentY := 0.
+    maxWidth := 0.
+    
+    "Ordenar workflows por nombre para consistencia"
+    (groupedRunners keys asSortedCollection) do: [ :workflowName |
+        | workflowRunners workflowBoxes workflowCurrentX workflowRowHeight workflowTitle separator |
+        
+        workflowRunners := groupedRunners at: workflowName.
+        workflowBoxes := OrderedCollection new.
+        
+        "a) Crear título del workflow"
+        workflowTitle := RSLabel new
+            text: workflowName, ' (', workflowRunners size printString, ' runs)';
+            fontSize: 14;
+            color: Color blue;
+            translateTo: 10 @ (currentY + 10).
+        canvas add: workflowTitle.
+        
+        "b) Ajustar Y para las cajas del workflow"
+        currentY := currentY + titleSpacing.
+        workflowCurrentX := 0.
+        workflowRowHeight := 0.
+        
+        "c) Crear cajas para este workflow"
+        workflowRunners do: [ :runner |
+            | jobs time steps w h color box |
+            
+            "Métricas"
+            time := runner getTotalExecutionTime.
+            jobs := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs size) ].
+            steps := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+            
+            "Calcular dimensiones - EJES INTERCAMBIADOS"
+            "Ancho = número de jobs"
+            w := (jobs max: 1) * 10.
+            "Alto = tiempo de ejecución (proporcional)"
+            h := (time max: 1).  "Se normalizará después"
+            
+            "Color según conclusión"
+            color := self getColorForConclusion: runner conclusion base: Color white.
+            
+            "Crear caja"
+            box := RSBox new
+                width: w;
+                height: h;
+                color: color;
+                model: runner.
+            
+            "Popup con info"
+            box @ (RSPopup text: [ :r |
+                'Name: ', r name asString, String cr,
+                'Workflow: ', r workflow name asString, String cr,
+                'Conclusion: ', r conclusion asString, String cr,
+                'Status: ', r status asString, String cr,
+                'Execution Time: ', time asString, 's', String cr,
+                'Jobs: ', jobs asString, String cr,
+                'Steps: ', steps asString ]).
+            
+            "Click para detalles"
+            box @ RSHighlightable new.
+            box
+                when: RSMouseClick
+                do: [ :evt | self showRunnerDetails: evt shape model ]
+                for: self.
+            
+            workflowBoxes add: box.
+            allBoxes add: box.
+        ].
+        
+        "d) Normalizar ALTO de las cajas de este workflow (tiempo de ejecución)"
+        RSNormalizer height
+            shapes: workflowBoxes;
+            from: 10;  "Alto mínimo"
+            to: 600;   "Alto máximo"
+            normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+        
+        "e) Posicionar cajas del workflow"
+        workflowBoxes do: [ :box |
+            | w h |
+            w := box width.
+            h := box height.
+            
+            "Wrap de línea si la siguiente caja sobrepasa lineMaxWidth (6000px)"
+            (workflowCurrentX + w) > lineMaxWidth ifTrue: [
+                workflowCurrentX := 0.
+                currentY := currentY + workflowRowHeight + 20.  "Espacio vertical entre filas"
+                workflowRowHeight := 0.
+            ].
+            
+            "Posicionar caja"
+            box translateTo: (workflowCurrentX + (w / 2)) @ (currentY + (h / 2)).
+            
+            "Agregar al canvas"
+            canvas add: box.
+            
+            "Actualizar coordenadas con spacing horizontal"
+            workflowCurrentX := workflowCurrentX + w + spacing.
+            maxWidth := maxWidth max: workflowCurrentX.
+            workflowRowHeight := workflowRowHeight max: h.
+        ].
+        
+        "f) Ajustar Y para el siguiente workflow"
+        currentY := currentY + workflowRowHeight + workflowSpacing.
+        
+        "g) Agregar línea separadora entre workflows (opcional)"
+        separator := RSLine new
+            startPoint: 0 @ (currentY - (workflowSpacing / 2));
+            endPoint: maxWidth @ (currentY - (workflowSpacing / 2));
+            color: Color lightGray.
+        canvas add: separator.
+    ].
+    
+    "8) Título principal"
+    canvas add: (RSLabel new
+        text: 'GH Runs by Workflow – Polymetric View (', runners size printString, ' total runs. Jobs on X, Time on Y)';
+        fontSize: 18;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ -30).
+    
+    "9) Leyenda actualizada"
+    self addLegendTo: canvas at: maxWidth + 20 @ 0.
+    
+    "10) Agregar indicador de escala"
+    canvas add: (RSLabel new
+        text: 'Max width = 6000px';
+        fontSize: 12;
+        color: Color gray;
+        translateTo: (maxWidth / 2) @ -10).
+
+	 self addExportControlsTo: canvas at: maxWidth + 20 @ 100.
+    
+    "11) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
+
+{ #category : 'as yet unclassified' }
+GHRunnerCollection >> polymetricViewByWorkflowsJobsYTimeX [
+    | canvas groupedRunners minTime maxTime minJobs maxJobs spacing currentX currentY maxWidth rowHeight lineMaxWidth runnerTimes allBoxes workflowSpacing titleSpacing |
+    
+    "1) Inicialización"
+    canvas := RSCanvas new.
+    
+    "2) Agrupar runners por workflow"
+    groupedRunners := Dictionary new.
+    runners do: [ :runner |
+        | workflowName workflowCollection |
+        workflowName := runner workflow name.
+        workflowCollection := groupedRunners
+            at: workflowName
+            ifAbsentPut: [ OrderedCollection new ].
+        workflowCollection add: runner.
+    ].
+    
+    "3) Ordenar cada grupo por fecha de inicio"
+    groupedRunners keysAndValuesDo: [ :workflowName :runnerList |
+        groupedRunners
+            at: workflowName
+            put: (runnerList asSortedCollection: [ :a :b |
+                (a getMostRecentStartedAt) >= (b getMostRecentStartedAt) ]).
+    ].
+    
+    "4) Parámetros de escala"
+    minJobs         := 1.
+    maxJobs         := 50.
+    lineMaxWidth    := 6000.  "Ancho máximo fijo de 6000px"
+    spacing         := 10.    "Espacios horizontales entre runs"
+    workflowSpacing := 100.   "Espacio extra entre workflows"
+    titleSpacing    := 40.    "Espacio para títulos de workflow"
+    
+    "5) Normalización: recolectar tiempos de TODOS los runners"
+    runnerTimes := runners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "6) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    
+    "7) Posicionar por workflows"
+    currentX := 0.
+    currentY := 0.
+    maxWidth := 0.
+    
+    "Ordenar workflows por nombre para consistencia"
+    (groupedRunners keys asSortedCollection) do: [ :workflowName |
+        | workflowRunners workflowBoxes workflowCurrentX workflowRowHeight workflowTitle separator |
+        
+        workflowRunners := groupedRunners at: workflowName.
+        workflowBoxes := OrderedCollection new.
+        
+        "a) Crear título del workflow"
+        workflowTitle := RSLabel new
+            text: workflowName, ' (', workflowRunners size printString, ' runs)';
+            fontSize: 14;
+            color: Color blue;
+            translateTo: 10 @ (currentY + 10).
+        canvas add: workflowTitle.
+        
+        "b) Ajustar Y para las cajas del workflow"
+        currentY := currentY + titleSpacing.
+        workflowCurrentX := 0.
+        workflowRowHeight := 0.
+        
+        "c) Crear cajas para este workflow"
+        workflowRunners do: [ :runner |
+            | jobs time steps w h color box |
+            
+            "Métricas"
+            time := runner getTotalExecutionTime.
+            jobs := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs size) ].
+            steps := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+            
+            "Calcular dimensiones - EJES INVERTIDOS"
+            "Ancho = tiempo de ejecución (proporcional)"
+            w := (time max: 1).  "Se normalizará después"
+            "Alto = número de jobs"
+            h := (jobs max: 1) * 10.
+            
+            "Color según conclusión"
+            color := self getColorForConclusion: runner conclusion base: Color white.
+            
+            "Crear caja"
+            box := RSBox new
+                width: w;
+                height: h;
+                color: color;
+                model: runner.
+            
+            "Popup con info"
+            box @ (RSPopup text: [ :r |
+                'Name: ', r name asString, String cr,
+                'Workflow: ', r workflow name asString, String cr,
+                'Conclusion: ', r conclusion asString, String cr,
+                'Status: ', r status asString, String cr,
+                'Execution Time: ', time asString, 's', String cr,
+                'Jobs: ', jobs asString, String cr,
+                'Steps: ', steps asString ]).
+            
+            "Click para detalles"
+            box @ RSHighlightable new.
+            box
+                when: RSMouseClick
+                do: [ :evt | self showRunnerDetails: evt shape model ]
+                for: self.
+            
+            workflowBoxes add: box.
+            allBoxes add: box.
+        ].
+        
+        "d) Normalizar ANCHO de las cajas de este workflow (tiempo de ejecución)"
+        RSNormalizer width
+            shapes: workflowBoxes;
+            from: 10;  "Ancho mínimo"
+            to: 600;   "Ancho máximo"
+            normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+        
+        "e) Posicionar cajas del workflow"
+        workflowBoxes do: [ :box |
+            | w h |
+            w := box width.
+            h := box height.
+            
+            "Wrap de línea si la siguiente caja sobrepasa lineMaxWidth (6000px)"
+            (workflowCurrentX + w) > lineMaxWidth ifTrue: [
+                workflowCurrentX := 0.
+                currentY := currentY + workflowRowHeight + 20.  "Espacio vertical entre filas"
+                workflowRowHeight := 0.
+            ].
+            
+            "Posicionar caja"
+            box translateTo: (workflowCurrentX + (w / 2)) @ (currentY + (h / 2)).
+            
+            "Agregar al canvas"
+            canvas add: box.
+            
+            "Actualizar coordenadas con spacing horizontal"
+            workflowCurrentX := workflowCurrentX + w + spacing.
+            maxWidth := maxWidth max: workflowCurrentX.
+            workflowRowHeight := workflowRowHeight max: h.
+        ].
+        
+        "f) Ajustar Y para el siguiente workflow"
+        currentY := currentY + workflowRowHeight + workflowSpacing.
+        
+        "g) Agregar línea separadora entre workflows (opcional)"
+        separator := RSLine new
+            startPoint: 0 @ (currentY - (workflowSpacing / 2));
+            endPoint: maxWidth @ (currentY - (workflowSpacing / 2));
+            color: Color lightGray.
+        canvas add: separator.
+    ].
+    
+    "8) Título principal"
+    canvas add: (RSLabel new
+        text: 'GH Runs by Workflow – Polymetric View (', runners size printString, ' total runs. Time on X, Jobs on Y)';
+        fontSize: 18;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ -30).
+    
+    "9) Leyenda actualizada"
+    self addLegendTo: canvas at: maxWidth + 20 @ 0.
+    
+    "10) Agregar indicador de escala"
+    canvas add: (RSLabel new
+        text: 'Max width = 6000px';
+        fontSize: 12;
+        color: Color gray;
+        translateTo: (maxWidth / 2) @ -10).
+
+    self addExportControlsTo: canvas at: maxWidth + 20 @ 100.
+    "11) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> polymetricViewByWorkflowsStepsX [
+    | canvas groupedRunners
+      minTime maxTime minHeight maxHeight
+      spacing currentX currentY maxWidth rowHeight lineMaxWidth runnerTimes allBoxes
+      workflowSpacing titleSpacing |
+    
+    "1) Inicialización"
+    canvas := RSCanvas new.
+    
+    "2) Agrupar runners por workflow"
+    groupedRunners := Dictionary new.
+    runners do: [ :runner |
+        | workflowName workflowCollection |
+        workflowName := runner workflow name.
+        workflowCollection := groupedRunners
+            at: workflowName
+            ifAbsentPut: [ OrderedCollection new ].
+        workflowCollection add: runner.
+    ].
+    
+    "3) Ordenar cada grupo por fecha de inicio"
+    groupedRunners keysAndValuesDo: [ :workflowName :runnerList |
+        groupedRunners
+            at: workflowName
+            put: (runnerList asSortedCollection: [ :a :b |
+                (a getMostRecentStartedAt) <= (b getMostRecentStartedAt) ]).
+    ].
+    
+    "4) Parámetros de escala"
+    minHeight       := 50.
+    maxHeight       := 200.
+    lineMaxWidth    := 6000. "Anchura máxima antes de wrap"
+    spacing         := 30.
+    workflowSpacing := 80.   "Espacio extra entre workflows"
+    titleSpacing    := 40.   "Espacio para títulos de workflow"
+    
+    "5) Normalización: recolectar tiempos de TODOS los runners"
+    runnerTimes := runners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "6) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    
+    "7) Posicionar por workflows"
+    currentX := 0.
+    currentY := 0.
+    maxWidth := 0.
+    
+    "Ordenar workflows por nombre para consistencia"
+    (groupedRunners keys asSortedCollection) do: [ :workflowName |
+        | workflowRunners workflowBoxes workflowCurrentX workflowRowHeight workflowTitle separator |
+        
+        workflowRunners := groupedRunners at: workflowName.
+        workflowBoxes := OrderedCollection new.
+        
+        "a) Crear título del workflow"
+        workflowTitle := RSLabel new
+            text: workflowName, ' (', workflowRunners size printString, ' runs)';
+            fontSize: 14;
+            color: Color blue;
+            translateTo: 10 @ (currentY + 10).
+        canvas add: workflowTitle.
+        
+        "b) Ajustar Y para las cajas del workflow"
+        currentY := currentY + titleSpacing.
+        workflowCurrentX := 0.
+        workflowRowHeight := 0.
+        
+        "c) Crear cajas para este workflow"
+        workflowRunners do: [ :runner |
+            | jobs time steps w color box |
+            
+            "Métricas"
+            time := runner getTotalExecutionTime.
+            jobs := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs size) ].
+            steps := runner attempts
+                inject: 0 into: [ :sum :att |
+                    sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+            
+            "Calcular ancho"
+            w := (steps max: 1) * 10.
+            
+            "Color según conclusión"
+            color := self getColorForConclusion: runner conclusion base: Color white.
+            
+            "Crear caja"
+            box := RSBox new
+                width: w;
+                height: minHeight;
+                color: color;
+                model: runner.
+            
+            "Popup con info"
+            box @ (RSPopup text: [ :r |
+                'Name: ', r name asString, String cr,
+                'Workflow: ', r workflow name asString, String cr,
+                'Conclusion: ', r conclusion asString, String cr,
+                'Status: ', r status asString, String cr,
+                'Execution Time: ', time asString, 's', String cr,
+                'Jobs: ', jobs asString, String cr,
+                'Steps: ', steps asString ]).
+            
+            "Click para detalles"
+            box @ RSHighlightable new.
+            box
+                when: RSMouseClick
+                do: [ :evt | self showRunnerDetails: evt shape model ]
+                for: self.
+            
+            workflowBoxes add: box.
+            allBoxes add: box.
+        ].
+        
+        "d) Normalizar altura de las cajas de este workflow"
+        RSNormalizer height
+            shapes: workflowBoxes;
+            from: minHeight;
+            to: maxHeight;
+            normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+        
+        "e) Posicionar cajas del workflow"
+        workflowBoxes do: [ :box |
+            | w h |
+            w := box width.
+            h := box height.
+            
+            "Wrap de línea si la siguiente caja sobrepasa lineMaxWidth"
+            (workflowCurrentX + w) > lineMaxWidth ifTrue: [
+                workflowCurrentX := 0.
+                currentY := currentY + workflowRowHeight + spacing.
+                workflowRowHeight := 0.
+            ].
+            
+            "Posicionar caja"
+            box translateTo: (workflowCurrentX + (w / 2)) @ (currentY + (h / 2)).
+            
+            "Agregar al canvas"
+            canvas add: box.
+            
+            "Actualizar coordenadas"
+            workflowCurrentX := workflowCurrentX + w + spacing.
+            maxWidth := maxWidth max: workflowCurrentX.
+            workflowRowHeight := workflowRowHeight max: h.
+        ].
+        
+        "f) Ajustar Y para el siguiente workflow"
+        currentY := currentY + workflowRowHeight + workflowSpacing.
+        
+        "g) Agregar línea separadora entre workflows (opcional)"
+        separator := RSLine new
+            startPoint: 0 @ (currentY - (workflowSpacing / 2));
+            endPoint: maxWidth @ (currentY - (workflowSpacing / 2));
+            color: Color lightGray.
+        canvas add: separator.
+    ].
+    
+    "8) Título principal"
+    canvas add: (RSLabel new
+        text: 'GH Runs by Workflow – Polymetric View (', runners size printString, ' total runs. Steps on X)';
+        fontSize: 18;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ -30).
+    
+    "9) Leyenda"
+    self addLegendTo: canvas at: maxWidth + 20 @ 0.
+    
+    "10) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
+
+{ #category : 'as yet unclassified' }
+GHRunnerCollection >> polymetricViewJobsX [
+    | canvas sortedRunners
+      minTime maxTime minHeight maxHeight
+      spacing currentX currentY maxWidth rowHeight lineMaxWidth runnerTimes allBoxes |
+    
+    "1) Inicialización"
+    canvas := RSCanvas new.
+    sortedRunners := runners
+        asSortedCollection: [ :a :b |
+            (a getMostRecentStartedAt) <= (b getMostRecentStartedAt) ].
+    
+    "2) Parámetros de escala"
+    minHeight    := 50.
+    maxHeight    := 200.
+    lineMaxWidth := 3000. "Anchura máxima antes de wrap"
+    spacing      := 30.
+    
+    "3) Normalización: recolectar tiempos"
+    runnerTimes := sortedRunners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "4) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    sortedRunners do: [ :runner |
+        | steps time jobs w color box |
+        
+        "a) Métricas"
+        time  := runner getTotalExecutionTime.
+		  jobs := runner attempts
+            inject: 0 into: [ :sum :att |
+                sum + (att jobs size) ].
+
+        steps := runner attempts
+            inject: 0 into: [ :sum :att |
+                sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+        
+        "b) Calcular ancho (altura será normalizada después)"
+        w := (jobs max: 1) * 10.  "10 px por jobs"
+        
+        "c) Color según conclusión"
+        color := self getColorForConclusion: runner conclusion base: Color white.
+        
+        "d) Crear caja con altura temporal"
+        box := RSBox new
+            width: w;
+            height: minHeight;  "Altura temporal, será normalizada"
+            color: color;
+            model: runner.
+        
+        "e) Popup con info"
+        box @ (RSPopup text: [ :r |
+            'Name: ', r name asString, String cr,
+            'Workflow: ', r workflow name asString, String cr,
+            'Conclusion: ', r conclusion asString, String cr,
+            'Status: ', r status asString, String cr,
+            'Execution Time: ', time asString, 's', String cr,
+            'Jobs: ', jobs asString, String cr,
+            'Steps: ', steps asString ]).
+        
+        "f) Click para detalles"
+        box @ RSHighlightable new.
+        box
+            when: RSMouseClick
+            do: [ :evt | self showRunnerDetails: evt shape model ]
+            for: self.
+        
+        allBoxes add: box.
+    ].
+    
+    "5) ÚNICA normalización de altura"
+    RSNormalizer height
+        shapes: allBoxes;
+        from: minHeight;
+        to: maxHeight;
+        normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+    
+    "6) Posicionar cajas DESPUÉS de la normalización"
+    currentX  := 0.
+    currentY  := 0.
+    maxWidth  := 0.
+    rowHeight := 0.
+    
+    allBoxes do: [ :box |
+        | w h |
+        w := box width.
+        h := box height.  "Ahora h tiene el valor correcto post-normalización"
+        
+        "Wrap de línea si la siguiente caja sobrepasa lineMaxWidth"
+        (currentX + w) > lineMaxWidth ifTrue: [
+            currentX := 0.
+            currentY := currentY + rowHeight + spacing.
+            rowHeight := 0.  "Resetear rowHeight para la nueva fila"
+        ].
+        
+        "Posicionar caja usando translateTo (centro de la caja)"
+        box translateTo: (currentX + (w / 2)) @ (currentY + (h / 2)).
+        
+        "Agregar al canvas"
+        canvas add: box.
+        
+        "Actualizar coordenadas para la siguiente caja"
+        currentX := currentX + w + spacing.
+        maxWidth := maxWidth max: currentX.
+        rowHeight := rowHeight max: h.
+    ].
+    
+    "7) Título y leyenda"
+    canvas add: (RSLabel new
+        text: 'GH Runs – Polymetric View (', runners size printString, ') (Jobs on X axis)';
+        fontSize: 24;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ -22).
+    
+    self addLegendTo: canvas at: maxWidth + 20 @ 0.
+    
+    "8) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
 ]
 
 { #category : 'public' }
@@ -1316,6 +5600,314 @@ GHRunnerCollection >> polymetricViewMolecular [
 	self addAtomicLegendTo: canvas at: maxWidth + 20 @ 0.
 	canvas @ RSCanvasController.
 	^ canvas open
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> polymetricViewStepsX [
+    | canvas sortedRunners
+      minTime maxTime minHeight maxHeight
+      spacing currentX currentY maxWidth rowHeight lineMaxWidth runnerTimes allBoxes |
+    
+    "1) Inicialización"
+    canvas := RSCanvas new.
+    sortedRunners := runners
+        asSortedCollection: [ :a :b |
+            (a getMostRecentStartedAt) <= (b getMostRecentStartedAt) ].
+    
+    "2) Parámetros de escala"
+    minHeight    := 50.
+    maxHeight    := 200.
+    lineMaxWidth := 3000. "Anchura máxima antes de wrap"
+    spacing      := 30.
+    
+    "3) Normalización: recolectar tiempos"
+    runnerTimes := sortedRunners collect: [ :r | r getTotalExecutionTime ].
+    minTime := runnerTimes min.
+    maxTime := runnerTimes max.
+    
+    "4) Crear todas las cajas primero (sin agregar al canvas)"
+    allBoxes := OrderedCollection new.
+    sortedRunners do: [ :runner |
+        | jobs time steps w color box |
+        
+        "a) Métricas"
+        time  := runner getTotalExecutionTime.
+		  jobs := runner attempts
+            inject: 0 into: [ :sum :att |
+                sum + (att jobs size) ].
+        steps := runner attempts
+            inject: 0 into: [ :sum :att |
+                sum + (att jobs inject: 0 into: [ :s :j | s + j steps size ]) ].
+        
+        "b) Calcular ancho (altura será normalizada después)"
+        w := (steps max: 1) * 10.  "10 px por step"
+        
+        "c) Color según conclusión"
+        color := self getColorForConclusion: runner conclusion base: Color white.
+        
+        "d) Crear caja con altura temporal"
+        box := RSBox new
+            width: w;
+            height: minHeight;  "Altura temporal, será normalizada"
+            color: color;
+            model: runner.
+        
+        "e) Popup con info"
+        box @ (RSPopup text: [ :r |
+            'Name: ', r name asString, String cr,
+            'Workflow: ', r workflow name asString, String cr,
+            'Conclusion: ', r conclusion asString, String cr,
+            'Status: ', r status asString, String cr,
+            'Execution Time: ', time asString, 's', String cr,
+			   'Jobs: ', jobs asString, String cr,
+            'Steps: ', steps asString ]).
+        
+        "f) Click para detalles"
+        box @ RSHighlightable new.
+        box
+            when: RSMouseClick
+            do: [ :evt | self showRunnerDetails: evt shape model ]
+            for: self.
+        
+        allBoxes add: box.
+    ].
+    
+    "5) ÚNICA normalización de altura"
+    RSNormalizer height
+        shapes: allBoxes;
+        from: minHeight;
+        to: maxHeight;
+        normalize: [ :runnerModel | runnerModel getTotalExecutionTime ].
+    
+    "6) Posicionar cajas DESPUÉS de la normalización"
+    currentX  := 0.
+    currentY  := 0.
+    maxWidth  := 0.
+    rowHeight := 0.
+    
+    allBoxes do: [ :box |
+        | w h |
+        w := box width.
+        h := box height.  "Ahora h tiene el valor correcto post-normalización"
+        
+        "Wrap de línea si la siguiente caja sobrepasa lineMaxWidth"
+        (currentX + w) > lineMaxWidth ifTrue: [
+            currentX := 0.
+            currentY := currentY + rowHeight + spacing.
+            rowHeight := 0.  "Resetear rowHeight para la nueva fila"
+        ].
+        
+        "Posicionar caja usando translateTo (centro de la caja)"
+        box translateTo: (currentX + (w / 2)) @ (currentY + (h / 2)).
+        
+        "Agregar al canvas"
+        canvas add: box.
+        
+        "Actualizar coordenadas para la siguiente caja"
+        currentX := currentX + w + spacing.
+        maxWidth := maxWidth max: currentX.
+        rowHeight := rowHeight max: h.
+    ].
+    
+    "7) Título y leyenda"
+    canvas add: (RSLabel new
+        text: 'GH Runs – Polymetric View (', runners size printString, ') (Steps on X axis)';
+        fontSize: 24;
+        color: Color black;
+        translateTo: (maxWidth / 2) @ -22).
+    
+    self addLegendTo: canvas at: maxWidth + 20 @ 0.
+    
+    "8) Mostrar"
+    canvas @ RSCanvasController.
+    ^ canvas open
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> positionAttemptBoxes: attemptBoxes withinRunBox: runBox spacing: spacing on: canvas [
+    "Posiciona los attemptBoxes dentro del runBox, uno tras otro en filas"
+    | runBoxBounds margin currentX currentY maxRowHeight availableWidth |
+    margin := 5.
+    runBoxBounds := runBox encompassingRectangle.
+    
+    "Inicializar posiciones"
+    currentX := runBoxBounds left + margin.
+    currentY := runBoxBounds top + margin.
+    maxRowHeight := 0.
+    availableWidth := runBoxBounds width - (2 * margin).
+    
+    attemptBoxes do: [ :attemptBox |
+        | attemptWidth attemptHeight |
+        attemptWidth := attemptBox width.
+        attemptHeight := attemptBox height.
+        
+        "Verificar si cabe en la fila actual"
+        ((currentX - runBoxBounds left - margin + attemptWidth) > availableWidth) ifTrue: [
+            "Pasar a la siguiente fila"
+            currentX := runBoxBounds left + margin.
+            currentY := currentY + maxRowHeight + spacing.
+            maxRowHeight := 0.
+        ].
+        
+        "Posicionar el attemptBox"
+        attemptBox translateTo: currentX + (attemptWidth / 2) @ (currentY + (attemptHeight / 2)).
+        canvas add: attemptBox.
+        
+        "Actualizar posición para el siguiente attemptBox"
+        currentX := currentX + attemptWidth + spacing.
+        maxRowHeight := maxRowHeight max: attemptHeight.
+    ].
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> positionInnerRectangles: attemptsBoxes 
+                 jobsBoxes: jobsBoxes 
+                 stepsBoxes: stepsBoxes
+                 withinRunBox: runBox 
+                 on: canvas [
+    | runBoxPos runBoxWidth sectionPadding rectHeight innerSpacing currentY startY borderWidth |
+    
+    runBoxPos := runBox position.
+    runBoxWidth := runBox width.
+    sectionPadding := 6.
+    rectHeight := 4. "Mismo valor que en buildRunnerBoxesFrom"
+    innerSpacing := 0. "Separación entre rectángulos del mismo grupo"
+	 borderWidth := 2.
+    
+    "Comenzar desde la parte superior del runBox"
+    startY := (runBoxPos y - (runBox height / 2) + (rectHeight / 2)) + borderWidth .
+    currentY := startY.
+    
+    "─── 1) Posicionar rectángulos de attempts (vertical stack) ───"
+    attemptsBoxes withIndexDo: [ :attBox :index |
+        attBox translateTo: runBoxPos x @ currentY.
+        canvas add: attBox.
+        currentY := currentY + rectHeight.
+        
+        "Agregar separación interna entre attempts (excepto el último)"
+        (index < attemptsBoxes size) ifTrue: [ 
+            currentY := currentY + innerSpacing ].
+    ].
+    
+    "Agregar separación entre secciones si hay attempts"
+    attemptsBoxes ifNotEmpty: [ currentY := currentY + sectionPadding ].
+    
+    "─── 2) Posicionar rectángulos de jobs (vertical stack) ───"
+    jobsBoxes withIndexDo: [ :jobBox :index |
+        jobBox translateTo: runBoxPos x @ currentY.
+        canvas add: jobBox.
+        currentY := currentY + rectHeight.
+        
+        "Agregar separación interna entre jobs (excepto el último)"
+        (index < jobsBoxes size) ifTrue: [ 
+            currentY := currentY + innerSpacing ].
+    ].
+    
+    "Agregar separación entre secciones si hay jobs"
+    jobsBoxes ifNotEmpty: [ currentY := currentY + sectionPadding ].
+    
+    "─── 3) Posicionar rectángulos de steps (vertical stack) ───"
+    stepsBoxes withIndexDo: [ :stepBox :index |
+        stepBox translateTo: runBoxPos x @ currentY.
+        canvas add: stepBox.
+        currentY := currentY + rectHeight.
+        
+        "Agregar separación interna entre steps (excepto el último)"
+        (index < stepsBoxes size) ifTrue: [ 
+            currentY := currentY + innerSpacing ].
+    ].
+]
+
+{ #category : 'rendering' }
+GHRunnerCollection >> renderTreemap: layoutData
+         on: canvas
+withRunnerBoxes: runnerBoxes
+         colors: aColorArray [
+    | margin spacing |
+    margin := 20.
+    spacing := 10.
+    layoutData withIndexDo: [ :entry :widx |
+        | key runnerData x y w h color currentX currentY rowMaxH container label
+          layoutSize neededW neededH runBoxes |
+        key   := entry at: 1.
+        runnerData := runnerBoxes at: key.
+        
+        "Extraer runBoxes - runnerData es una colección de diccionarios"
+        runBoxes := runnerData collect: [ :dict | dict at: #runBox ].
+        
+        x     := entry at: 6.
+        y     := entry at: 7.
+        w     := entry at: 8.
+        h     := entry at: 9.
+        color := aColorArray at: ((widx-1) \\ aColorArray size) + 1.
+        
+        "─── 1) Calcular si necesitamos más altura ───"
+        neededW := w - (2 * margin).
+        layoutSize := self
+            estimateRequiredGridSizeFor: runBoxes
+            maxRowWidth: neededW
+            spacing: spacing.
+        neededH := layoutSize y + (2 * margin).
+        
+        "Si la altura real que necesitamos (neededH) supera la del layout, la estiramos"
+        h := neededH max: h.
+        
+        "─── 2) Dibujo el contenedor con la altura posiblemente ajustada ───"
+        container := RSBox new
+            width: w; height: h;
+            color: Color transparent;
+            border: (RSBorder new color: color darker; width: 3);
+            model: entry.
+        container translateTo: x + (w / 2) @ (y + (h / 2)).
+        canvas add: container.
+        
+        "─── 3) Etiqueta ───"
+        label := RSLabel new
+            text: key; fontSize: 12; bold.
+        label translateTo: x + (w / 2) @ (y + margin).
+        canvas add: label.
+        
+        "─── 4) Posicionar runBoxes en grid ───"
+        currentX := x + margin.
+        currentY := y + (margin * 2).
+        rowMaxH  := 0.
+        
+        runnerData withIndexDo: [ :runDict :index |
+            | runBox attemptsBoxes jobsBoxes stepsBoxes bx by |
+            runBox := runDict at: #runBox.
+            attemptsBoxes := runDict at: #attemptsBoxes.
+            jobsBoxes := runDict at: #jobsBoxes.
+            stepsBoxes := runDict at: #stepsBoxes.
+            
+            bx := runBox width.
+            by := runBox height.
+            
+            "Verificar si cabe en la fila actual"
+            ((currentX + bx) > (x + w - margin)) ifTrue: [
+                currentX := x + margin.
+                currentY := currentY + rowMaxH + spacing.
+                rowMaxH := 0.
+            ].
+            
+            "Posicionar el runBox"
+            runBox translateTo: currentX + (bx / 2) @ (currentY + (by / 2)).
+            canvas add: runBox.
+            
+            "Posicionar los rectángulos interiores dentro del runBox"
+            self positionInnerRectangles: attemptsBoxes 
+                 jobsBoxes: jobsBoxes 
+                 stepsBoxes: stepsBoxes
+                 withinRunBox: runBox 
+                 on: canvas.
+            
+            "Actualizar posición para el siguiente runBox"
+            currentX := currentX + bx + spacing.
+            rowMaxH := rowMaxH max: by.
+        ].
+    ].
+    "Vuelve a inyectar el controller antes de abrir"
+    canvas @ RSCanvasController.
+    ^ canvas open
 ]
 
 { #category : 'public' }
@@ -1583,6 +6175,72 @@ GHRunnerCollection >> showStepDetails: aStep [
 
 { #category : 'public' }
 GHRunnerCollection >> squaredView [
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> squarifiedTreemap: dataArray inRect: rect layouts: layouts [
+    "Algoritmo squarified treemap que minimiza aspect ratios"
+    | remainingData currentRow currentRect |
+    
+    dataArray isEmpty ifTrue: [ ^ self ].
+    
+    remainingData := dataArray copy.
+    currentRect := rect.
+    
+    [ remainingData isEmpty ] whileFalse: [
+        | bestRow |
+        bestRow := self findBestRow: remainingData forRect: currentRect.
+        
+        "Renderizar la fila actual"
+        self layoutRow: bestRow inRect: currentRect layouts: layouts.
+        
+        "Actualizar datos restantes y rectángulo"
+        remainingData := remainingData allButFirst: bestRow size.
+        currentRect := self updateRectAfterRow: bestRow inRect: currentRect.
+    ].
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> treemapDataFrom: groupedRunners runnerBoxes: runnerBoxes [
+    "Peso = área total necesaria para sus cajas de runners"
+    ^ groupedRunners collect: [ :pair |
+        | key runnerData runBoxes size weight |
+        key := pair key.
+        runnerData := runnerBoxes at: key.
+        "Extraer solo los runBox para calcular el tamaño del grid"
+        runBoxes := runnerData collect: [ :entry | entry at: #runBox ].
+        size := self estimateRequiredGridSizeFor: runBoxes
+                                      maxRowWidth: 3000
+                                           spacing: 6.
+        weight := size x * (size y).
+        { key. runnerData. weight. 1 }
+    ].
+
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> updateRectAfterRow: row inRect: rect [
+    "Actualiza el rectángulo después de colocar una fila"
+    | totalWeight isHorizontal |
+    
+    totalWeight := row sum: [ :data | data at: 6 ].
+    isHorizontal := rect width >= rect height.
+    
+    ^ isHorizontal
+        ifTrue: [
+            | usedHeight |
+            usedHeight := rect height.
+            Rectangle 
+                origin: rect origin + (0 @ usedHeight)
+                extent: rect width @ (rect height - usedHeight)
+        ]
+        ifFalse: [
+            | usedWidth |
+            usedWidth := rect width.
+            Rectangle 
+                origin: rect origin + (usedWidth @ 0)
+                extent: (rect width - usedWidth) @ rect height
+        ]
 ]
 
 { #category : 'public' }
@@ -1921,126 +6579,38 @@ GHRunnerCollection >> visualizeRunsByWorkflowWithLayout [
     ^ canvas
 ]
 
+{ #category : 'accessing' }
+GHRunnerCollection >> workflowColors [
+   | colors |
+	colors := { 
+				Color blue muchLighter. Color red muchLighter. Color green muchLighter. 
+				Color orange muchLighter. Color purple muchLighter. Color brown muchLighter.
+				Color cyan muchLighter. Color magenta muchLighter. Color yellow muchLighter. Color gray muchLighter 
+	  }.
+	^ colors.
+]
+
 { #category : 'public' }
 GHRunnerCollection >> workflowHotspotView [
-	| canvas groupedRunners currentY maxWidth workflowColors rectangles |
-	
-	canvas := RSCanvas new.
-	
-	"agrupar runners por workflow y ordenar por fecha (más recientes primero)"
-	groupedRunners := (runners groupedBy: [ :r | r workflow name ]) 
-		associations collect: [ :assoc |
-			assoc key -> (assoc value asSortedCollection: [ :a :b | 
-				a runStartedAt > b runStartedAt ]) ].
-	
-	groupedRunners := groupedRunners asSortedCollection: [ :a :b | a key < b key ].
-	
-	workflowColors := { 
-		Color blue muchLighter. Color red muchLighter. Color green muchLighter. 
-		Color orange muchLighter. Color purple muchLighter. Color brown muchLighter.
-		Color cyan muchLighter. Color magenta muchLighter. Color yellow muchLighter. Color gray muchLighter 
-	}.
-	
-	currentY := 50.
-	maxWidth := 0.
-	rectangles := OrderedCollection new.
-	
-	"procesar cada grupo de workflow"
-	groupedRunners withIndexDo: [ :workflowGroup :workflowIndex |
-		| workflowRunners workflowColor workflowLabel currentX maxHeightInRow |
-		
-		workflowRunners := workflowGroup value.
-		workflowColor := workflowColors at: ((workflowIndex - 1) \\ workflowColors size + 1).
-		
-		"label del workflow"
-		workflowLabel := RSLabel new
-			text: workflowGroup key;
-			fontSize: 65;
-			color: Color black;
-			bold;
-			translateTo: 10 @ (currentY - 75).
-		canvas add: workflowLabel.
-		
-		currentX := 20.
-		maxHeightInRow := 0.
-		
-		workflowRunners withIndexDo: [ :runner :runnerIndex |
-			| rectangle width height color executionTime jobCount |
-			
-			jobCount := runner jobs size.
-			executionTime := self getLastAttemptExecutionTime: runner.
-			
-			"cajita"
-			width := (jobCount max: 1) * 25.  "ancho = número de jobs"
-			height := 50.  "altura temporal"
-			
-			"color basado en conclusion"
-			color := self getColorForConclusion: runner conclusion base: workflowColor.
-			
-			rectangle := RSBox new
-				width: width;
-				height: height;
-				color: color;
-				border: (RSBorder new 
-					color: workflowColor darker; 
-					width: 1);
-				model: runner.
-			
-			rectangle translateTo: currentX + (width / 2) @ (currentY + (height / 2)).
-			
-			"información detallada"
-			rectangle @ (RSPopup text: [ :runner |
-				| realTime |
-				realTime := self getLastAttemptExecutionTime: runner.
-				'Workflow: ' , runner workflow name , String cr ,
-				'Run: ' , runner name asString , String cr ,
-				'Jobs: ' , runner jobs size asString , String cr ,
-				'Execution Time: ' , realTime asString , 's' , String cr ,
-				'Attempt: ' , runner runAttempt asString , String cr ,
-				'Conclusion: ' , runner conclusion asString , String cr ,
-				'Status: ' , runner status asString , String cr ,
-				'Started: ' , runner runStartedAt asString , String cr ,
-				'Click for detailed info...' ]).
-			
-			"interacciones"
-			rectangle @ RSHighlightable new.
-			rectangle when: RSMouseClick do: [ :evt | 
-				self showRunnerDetails: evt shape model ] for: self.
-			
-			canvas add: rectangle.
-			rectangles add: rectangle.
-			
-			"actualizar posición para siguiente rectángulo"
-			currentX := currentX + width + 50.
-			maxHeightInRow := maxHeightInRow max: height.
-			maxWidth := maxWidth max: currentX.
-			
-			"salto de línea cada 10 runners exactamente"
-			runnerIndex \\ 10 = 0 ifTrue: [
-				currentX := 20.
-				currentY := currentY + maxHeightInRow + 200.  
-				maxHeightInRow := 0 ]
-		].
-		
-		"espacio entre workflows"
-		currentY := currentY + 300
-	].
-	
-	"normalización de altura"
-	RSNormalizer height
-		shapes: rectangles;
-		from: 10;
-		to: 150;
-		normalize: [ :runner | self getLastAttemptExecutionTime: runner ].
-	
-	rectangles do: [ :rect |
-		| currentPosition |
-		currentPosition := rect position.
-		rect translateTo: currentPosition x @ (currentPosition y + (rect height / 2) - 25)
-	].
-	
-	canvas @ RSCanvasController.
-	^ canvas open
+    | canvas groupedRunners workflowColors runnerBoxes treemapData treemapLayout |
+
+    canvas := RSCanvas new.
+    groupedRunners := self groupAndSortRunners: runners.
+    workflowColors := self workflowColors.
+
+    "1) Crear y normalizar las cajas de runners (como Dictionary, con los attempts dentro)"
+    runnerBoxes := self buildRunnerBoxesFrom: groupedRunners colors: workflowColors.
+    
+    "2) Generar los datos de treemap (peso = área requerida)"
+    treemapData := self treemapDataFrom: groupedRunners runnerBoxes: runnerBoxes.
+    
+    "3) Calcular layout y renderizar"
+    treemapLayout := self calculateTreemapLayout: treemapData.
+    self renderTreemap: treemapLayout
+                on: canvas
+         withRunnerBoxes: runnerBoxes
+                  colors: workflowColors.
+
 ]
 
 { #category : 'public' }
@@ -2159,4 +6729,112 @@ GHRunnerCollection >> workflowHotspotViewByActor [
 	
 	canvas @ RSCanvasController.
 	^ canvas open
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> wrapText: text maxWidth: maxWidth [
+    "Dividir texto en líneas que quepan en el ancho especificado"
+    | words lines currentLine currentWidth |
+    
+    words := text substrings: ' '.
+    lines := OrderedCollection new.
+    currentLine := ''.
+    currentWidth := 0.
+    
+    words do: [ :word |
+        | wordWidth |
+        wordWidth := word size * 5. "Aproximación: 5 pixels por carácter"
+        
+        (currentWidth + wordWidth) > maxWidth ifTrue: [
+            currentLine isEmpty ifFalse: [
+                lines add: currentLine.
+                currentLine := word.
+                currentWidth := wordWidth.
+            ] ifTrue: [
+                "Si una sola palabra es muy larga, la agregamos anyway"
+                lines add: word.
+                currentLine := ''.
+                currentWidth := 0.
+            ].
+        ] ifFalse: [
+            currentLine isEmpty 
+                ifTrue: [ 
+                    currentLine := word.
+                    currentWidth := wordWidth.
+                ]
+                ifFalse: [ 
+                    currentLine := currentLine, ' ', word.
+                    currentWidth := currentWidth + wordWidth + 5. "5 para el espacio"
+                ].
+        ].
+    ].
+    
+    currentLine isEmpty ifFalse: [ lines add: currentLine ].
+    
+    ^ lines ifEmpty: [ OrderedCollection with: 'No text' ]
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> wrapTextToLines: text maxWidth: maxWidth [
+    "Dividir texto en líneas que respeten el ancho máximo especificado"
+    | words lines currentLine currentWidth approximateCharWidth |
+    
+    approximateCharWidth := 6. "Aproximación: 6 pixels por carácter con fontSize 9"
+    words := text substrings: ' '.
+    lines := OrderedCollection new.
+    currentLine := ''.
+    currentWidth := 0.
+    
+    words do: [ :word |
+        | wordWidth spaceWidth |
+        wordWidth := word size * approximateCharWidth.
+        spaceWidth := approximateCharWidth.
+        
+        "Verificar si la palabra cabe en la línea actual"
+        (currentWidth + wordWidth + (currentLine isEmpty ifTrue: [0] ifFalse: [spaceWidth])) > maxWidth ifTrue: [
+            "La palabra no cabe, guardar línea actual y empezar nueva"
+            currentLine isEmpty ifFalse: [
+                lines add: currentLine.
+                currentLine := word.
+                currentWidth := wordWidth.
+            ] ifTrue: [
+                "Si una sola palabra es muy larga, la partimos"
+                word size * approximateCharWidth > maxWidth ifTrue: [
+                    | maxCharsPerLine partIndex |
+                    maxCharsPerLine := (maxWidth / approximateCharWidth) floor max: 1.
+                    partIndex := 1.
+                    [ partIndex <= word size ] whileTrue: [
+                        | part endIndex |
+                        endIndex := (partIndex + maxCharsPerLine - 1) min: word size.
+                        part := word copyFrom: partIndex to: endIndex.
+                        lines add: part.
+                        partIndex := endIndex + 1.
+                    ].
+                    currentLine := ''.
+                    currentWidth := 0.
+                ] ifFalse: [
+                    lines add: word.
+                    currentLine := ''.
+                    currentWidth := 0.
+                ].
+            ].
+        ] ifFalse: [
+            "La palabra cabe en la línea actual"
+            currentLine isEmpty 
+                ifTrue: [ 
+                    currentLine := word.
+                    currentWidth := wordWidth.
+                ]
+                ifFalse: [ 
+                    currentLine := currentLine, ' ', word.
+                    currentWidth := currentWidth + spaceWidth + wordWidth.
+                ].
+        ].
+    ].
+    
+    "Agregar la última línea si no está vacía"
+    currentLine isEmpty ifFalse: [ lines add: currentLine ].
+    
+    "Si no hay líneas, retornar al menos una línea vacía"
+    ^ lines ifEmpty: [ OrderedCollection with: 'No text' ]
 ]
