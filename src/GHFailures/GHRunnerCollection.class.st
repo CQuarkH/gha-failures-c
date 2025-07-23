@@ -2103,7 +2103,7 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
     currentY := 80.
     boxes := OrderedCollection new.
     microprintElements := OrderedCollection new.
-    allElements := OrderedCollection new.  "NUEVO: colección para todos los elementos"
+    allElements := OrderedCollection new.
     layerWidth := 200.
     margin := 20.
     segmentWidth := 6.
@@ -2138,7 +2138,7 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
     
     canvas add: containerBox.
     boxes add: containerBox.
-    allElements add: containerBox.  "NUEVO: agregar a la colección general"
+    allElements add: containerBox.
     
     "Crear elementos visuales del microprint"
     logSegments doWithIndex: [ :segment :index |
@@ -2164,6 +2164,7 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
         
         microprintElement translateTo: segmentX @ segmentY.
         
+        "CAMBIO PRINCIPAL: Pasar el elemento específico como parentBox"
         microprintElement when: RSMouseClick do: [ :evt |
             self clearConnectionsByType: #microprintToDetail connections: connections canvas: canvas.
             self openDetailedLogLayer: segment 
@@ -2173,7 +2174,7 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
                  withSpacing: spacing
                  layerBoxes: layerBoxes
                  connections: connections
-                 parentBox: containerBox
+                 parentBox: evt shape  "CAMBIO: usar el elemento específico clickeado"
                  layerBorders: layerBorders
                  segmentIndex: index ] for: self.
         
@@ -2188,12 +2189,12 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
         
         canvas add: microprintElement.
         
-        "NUEVO: Registrar elemento en el contenedor para limpieza posterior"
+        "Registrar elemento en el contenedor para limpieza posterior"
         (containerBox propertyAt: #microprintElements) add: microprintElement.
-        allElements add: microprintElement.  "NUEVO: agregar a la colección general"
+        allElements add: microprintElement.
     ].
     
-    "Crear conexión desde parent step"
+    "Crear conexión desde parent step AL CONTENEDOR (no cambiar esto)"
     connection := self createConnection: parentBox to: containerBox
                        connectionType: #stepToLog
                        fromLayer: 4
@@ -2201,7 +2202,7 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
     canvas add: connection.
     connections add: connection.
     
-    layerBoxes at: 5 put: allElements.  "CAMBIO: almacenar TODOS los elementos"
+    layerBoxes at: 5 put: allElements.
     
     "Crear borde"
     self addLayerBorderForBoxes: canvas 
@@ -3560,7 +3561,7 @@ GHRunnerCollection >> openDetailedLogLayer: segment step: step onCanvas: canvas 
 { #category : 'public' }
 GHRunnerCollection >> openDetailedLogLayer: segment step: step onCanvas: canvas atX: x withSpacing: spacing layerBoxes: layerBoxes connections: connections parentBox: parentBox layerBorders: layerBorders segmentIndex: segmentIndex [
     "Abrir una nueva layer a la derecha con el log detallado del segmento seleccionado"
-    | logText wrappedLines textElements connection currentY boxes layerWidth margin detailedSegments startIndex endIndex contextSegments infoElement  |
+    | logText wrappedLines textElements connection currentY boxes layerWidth margin detailedSegments startIndex endIndex contextSegments infoElement |
     
     "Limpiar layer 6 si existe"
     self clearConnectionsFromLayer: 6 connections: connections canvas: canvas.
@@ -3583,7 +3584,7 @@ GHRunnerCollection >> openDetailedLogLayer: segment step: step onCanvas: canvas 
     
     "Crear elementos de texto para cada segmento en contexto"
     contextSegments doWithIndex: [ :contextSegment :index |
-        | textElement color actualIndex isSelected indicator  |
+        | textElement color actualIndex isSelected indicator |
         
         actualIndex := startIndex + index - 1.
         isSelected := actualIndex = segmentIndex.
@@ -3648,9 +3649,9 @@ GHRunnerCollection >> openDetailedLogLayer: segment step: step onCanvas: canvas 
     canvas add: infoElement.
     boxes add: infoElement.
     
-    "Crear conexión desde microprint element"
+    "CAMBIO PRINCIPAL: Crear conexión desde el elemento específico del microprint"
     textElements ifNotEmpty: [
-        connection := self createConnection: parentBox to: textElements first
+        connection := self createConnection: parentBox to: textElements first  "parentBox ahora es el elemento específico"
                            connectionType: #microprintToDetail
                            fromLayer: 5
                            toLayer: 6.
