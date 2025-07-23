@@ -6,21 +6,14 @@ Metacello new
     load.
 ```
 ## Ejemplo de Uso
-
-Para cargar los Runners, se debe utilizar el script `scrap_formated_runs.py`, de la siguiente manera:
-```
-python3 scrap_formated_runs.py REPO OWNER --individual --token TOKEN_GH --max-runs 300 --no-logs
-
-```
-Luego de lo anterior, para visualizarlos, se puede utilizar lo siguiente:
+- Los Runs de prueba están dentro de este mismo repositorio, en el directorio `vercel_next.js`
+Para visualizar los runs, se puede utilizar lo siguiente:
 
 ```
 | ghRunnersCollection |
 
 ghRunnersCollection := GHRunnerCollection new.
-ghRunnersCollection loadRunnersFromDir: 'RUTA_A_LOS_RUNNERS_EXTRAIDOS' . 
+ghRunnersCollection loadRunnersFromDir: 'RUNS_DIR' . 
 
-ghRunnersCollection workflowHotspotView . "visualización de runners agrupados por workflows"
-
-ghRunnersCollection hotspotViewByActor . "visualización de runners agrupados por actor/usuario"
+ghRunnersCollection layerDesignView: 'build-and-deploy'.
 ```
