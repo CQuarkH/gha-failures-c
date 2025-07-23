@@ -1413,6 +1413,59 @@ GHRunnerCollection >> createConnection: fromBox to: toBox connectionType: connec
 ]
 
 { #category : 'public' }
+GHRunnerCollection >> createConnection: fromBox to: toBox connectionType: connectionType fromLayer: fromLayer toLayer: toLayer color: color [
+    "Crear una conexión marcada entre dos cajas"
+    | line |
+    
+    line := RSLine new
+        from: fromBox;
+        to: toBox;
+        color: color;
+        yourself.
+    
+    "Marcar la conexión con metadatos"
+    line propertyAt: #connectionType put: connectionType.
+    line propertyAt: #fromLayer put: fromLayer.
+    line propertyAt: #toLayer put: toLayer.
+    
+    ^ line
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createConnectionToSpecificPoint: fromBox to: toBox connectionType: connectionType fromLayer: fromLayer toLayer: toLayer color: connectionColor targetSide: targetSide [
+    "Crear una conexión marcada entre dos cajas con punto de destino específico"
+    | line fromPoint toPoint |
+    
+    "Punto de origen (centro del elemento origen)"
+    fromPoint := fromBox position.
+    
+    "Punto de destino basado en el lado especificado"
+    toPoint := targetSide = #centerLeft
+        ifTrue: [ 
+            "Centro izquierdo: posición Y del centro, posición X del borde izquierdo"
+            (toBox position x - (toBox width / 2)) @ toBox position y
+        ]
+        ifFalse: [ 
+            "Por defecto: centro del elemento"
+            toBox position
+        ].
+    
+    "Crear línea con puntos específicos"
+    line := RSLine new
+        from: fromPoint;
+        to: toPoint;
+        color: connectionColor;
+        yourself.
+    
+    "Marcar la conexión con metadatos"
+    line propertyAt: #connectionType put: connectionType.
+    line propertyAt: #fromLayer put: fromLayer.
+    line propertyAt: #toLayer put: toLayer.
+    
+    ^ line
+]
+
+{ #category : 'public' }
 GHRunnerCollection >> createDetailedIndividualJobsFor: runner withJobs: jobs inGroup: moleculeGroup withNucleusSize: nucleusSize [
 	"Visualización normal para ≤10 jobs (como en el código original)"
 	| maxJobTime baseRadius scale |
@@ -3561,7 +3614,7 @@ GHRunnerCollection >> openDetailedLogLayer: segment step: step onCanvas: canvas 
 { #category : 'public' }
 GHRunnerCollection >> openDetailedLogLayer: segment step: step onCanvas: canvas atX: x withSpacing: spacing layerBoxes: layerBoxes connections: connections parentBox: parentBox layerBorders: layerBorders segmentIndex: segmentIndex [
     "Abrir una nueva layer a la derecha con el log detallado del segmento seleccionado"
-    | logText wrappedLines textElements connection currentY boxes layerWidth margin detailedSegments startIndex endIndex contextSegments infoElement |
+    | logText wrappedLines textElements connection currentY boxes layerWidth margin detailedSegments startIndex endIndex contextSegments infoElement selectedElement |
     
     "Limpiar layer 6 si existe"
     self clearConnectionsFromLayer: 6 connections: connections canvas: canvas.
@@ -3572,6 +3625,7 @@ GHRunnerCollection >> openDetailedLogLayer: segment step: step onCanvas: canvas 
     textElements := OrderedCollection new.
     layerWidth := 500.
     margin := 15.
+    selectedElement := nil.  "NUEVO: variable para almacenar el elemento seleccionado"
     
     "Obtener el log completo y parsearlo"
     logText := step log ifNil: [ 'No log available' ].
@@ -3604,6 +3658,8 @@ GHRunnerCollection >> openDetailedLogLayer: segment step: step onCanvas: canvas 
         "Aplicar formato especial al segmento seleccionado"
         isSelected ifTrue: [
             textElement bold.
+            selectedElement := textElement.  "NUEVO: almacenar el elemento seleccionado"
+            
             "Agregar indicador visual"
             indicator := RSBox new
                 width: (layerWidth - (margin * 2));
@@ -3649,12 +3705,15 @@ GHRunnerCollection >> openDetailedLogLayer: segment step: step onCanvas: canvas 
     canvas add: infoElement.
     boxes add: infoElement.
     
-    "CAMBIO PRINCIPAL: Crear conexión desde el elemento específico del microprint"
-    textElements ifNotEmpty: [
-        connection := self createConnection: parentBox to: textElements first  "parentBox ahora es el elemento específico"
+    "CAMBIO PRINCIPAL: Crear conexión hacia el elemento seleccionado específicamente"
+    selectedElement ifNotNil: [
+        connection := self createConnectionToSpecificPoint: parentBox 
+                           to: selectedElement 
                            connectionType: #microprintToDetail
                            fromLayer: 5
-                           toLayer: 6.
+                           toLayer: 6
+                           color: Color blue
+                           targetSide: #centerLeft.  "NUEVO: especificar el lado de destino"
         canvas add: connection.
         connections add: connection.
     ].
