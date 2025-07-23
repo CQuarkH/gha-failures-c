@@ -2001,65 +2001,90 @@ GHRunnerCollection >> createJobsLayer: jobs onCanvas: canvas atX: x withBoxSpaci
 
 { #category : 'public' }
 GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements connections: connections parentBox: parentBox layerBorders: layerBorders [
-    "Crear el layer de log (quinta columna) - solo para steps con failure"
-    | logText truncatedLog wrappedLines textElements connection currentY boxes layerWidth margin |
+    "Crear el layer de log como microprint visual - solo para steps con failure"
+    | logText logSegments microprintElements connection currentY boxes layerWidth margin segmentWidth segmentHeight availableWidth columnsPerRow |
     
     currentY := 80.
     boxes := OrderedCollection new.
-    textElements := OrderedCollection new.
-    layerWidth := 400.
-    margin := 10.
+    microprintElements := OrderedCollection new.
+    layerWidth := 200.
+    margin := 20. "Más margen para que coincida con addLayerBorderForBoxes"
+    segmentWidth := 6.
+    segmentHeight := 3.
+    
+    "Calcular cuántas columnas caben en el ancho disponible (considerando el borde)"
+    availableWidth := layerWidth - margin.
+    columnsPerRow := availableWidth // (segmentWidth + 1).
     
     "Obtener el log del step"
     logText := step log ifNil: [ 'No log available' ].
     
-    "Truncar a los primeros 200 caracteres"
-    truncatedLog := logText size > 2000 
-        ifTrue: [ (logText first: 2000), '...' ]
-        ifFalse: [ logText ].
+    "Parsear el log en segmentos y clasificarlos"
+    logSegments := self parseLogIntoSegments: logText.
     
-    "Hacer wrap del texto para que respete el ancho con margen"
-    wrappedLines := self wrapTextToLines: truncatedLog maxWidth: (layerWidth - (margin * 2)).
-    
-    "Crear elementos de texto para cada línea"
-    wrappedLines doWithIndex: [ :line :index |
-        | textElement |
+    "Crear elementos visuales del microprint"
+    logSegments doWithIndex: [ :segment :index |
+        | microprintElement color segmentX segmentY rowIndex colIndex |
         
-        textElement := RSLabel new
-            text: line;
-            fontSize: 9;
-            color: Color black;
+        "Determinar color basado en el tipo de segmento"
+        color := (segment at: #isError) 
+            ifTrue: [ Color red ]
+            ifFalse: [ Color gray ].
+        
+        "Calcular posición en grid - más preciso"
+        rowIndex := (index - 1) // columnsPerRow.
+        colIndex := (index - 1) \\ columnsPerRow.
+        
+        segmentX := (x - 10) + (margin // 2) + (colIndex * (segmentWidth + 1)) + (segmentWidth / 2).
+        segmentY := currentY + (rowIndex * (segmentHeight + 1)) + (segmentHeight / 2).
+        
+        "Crear rectángulo del microprint"
+        microprintElement := RSBox new
+            width: segmentWidth;
+            height: segmentHeight;
+            color: color;
+            borderColor: color darker;
+            borderWidth: 0.3;
             yourself.
         
-        "Posicionar cada línea centrada en el área del layer"
-        "El borde se crea en (x - 10) con layerWidth, así que el centro es:"
-        textElement translateTo: ((x - 10) + (layerWidth / 2)) @ (currentY + (index * 12)).
+        "Posicionar elemento"
+        microprintElement translateTo: segmentX @ segmentY.
         
-        "Popup con información completa en cada línea"
-        textElement @ (RSPopup text: [
-            'Step Log:', String cr,
-            'Step: ', (step name ifNil: ['Unknown'] ifNotNil: [:n | n asString]), String cr,
-            'Full log (first 500 chars):', String cr,
-            (step log ifNil: ['No log available'] ifNotNil: [:log | 
-                log size > 500 
-                    ifTrue: [ (log first: 500), '...' ]
-                    ifFalse: [ log ]]) ]).
+        "Agregar interactividad - click para abrir log detallado A LA DERECHA"
+        microprintElement when: RSMouseClick do: [ :evt |
+            self openDetailedLogLayer: segment 
+                 step: step 
+                 onCanvas: canvas 
+                 atX: (x + 220)  "Posición a la derecha"
+                 withSpacing: spacing
+                 layerBoxes: layerBoxes
+                 connections: connections
+                 parentBox: evt shape
+                 layerBorders: layerBorders
+                 segmentIndex: index ] for: self.
+        
+        "Popup con preview del segmento"
+        microprintElement @ (RSPopup text: [
+            'Log Segment ', index asString, ':', String cr,
+            'Type: ', ((segment at: #isError) ifTrue: ['ERROR'] ifFalse: ['INFO']), String cr,
+            'Preview: ', ((segment at: #text) truncateTo: 100), String cr,
+            'Click to view full content' ]).
         
         "Highlight al pasar mouse"
-        textElement @ RSHighlightable new.
-        textElement model: step.
+        microprintElement @ RSHighlightable new.
+        microprintElement model: segment.
         
-        canvas add: textElement.
-        textElements add: textElement.
-        boxes add: textElement.
+        canvas add: microprintElement.
+        microprintElements add: microprintElement.
+        boxes add: microprintElement.
     ].
     
-    "Crear conexión desde parent step - MARCADA"
-    textElements ifNotEmpty: [
-        connection := self createConnection: parentBox to: textElements first 
-                          connectionType: #stepToLog 
-                          fromLayer: 4 
-                          toLayer: 5.
+    "Crear conexión desde parent step"
+    microprintElements ifNotEmpty: [
+        connection := self createConnection: parentBox to: microprintElements first
+                           connectionType: #stepToLog
+                           fromLayer: 4
+                           toLayer: 5.
         canvas add: connection.
         connections add: connection.
     ].
@@ -2067,7 +2092,125 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
     layerBoxes at: 5 put: boxes.
     
     "Crear borde para este layer"
-    self addLayerBorderForBoxes: canvas boxes: boxes atX: (x - 10) layerName: 'Log (Failure)' layerNumber: 5 layerBorders: layerBorders.
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: (x - 10) layerName: 'Log Microprint' layerNumber: 5 layerBorders: layerBorders.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements layerSpacing: layerSpacing connections: connections parentBox: parentBox layerBorders: layerBorders [
+    "Crear el layer de log como microprint visual - solo para steps con failure"
+    | logText logSegments microprintElements connection currentY boxes layerWidth margin segmentWidth segmentHeight availableWidth columnsPerRow baseX containerBox totalRows totalHeight |
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    microprintElements := OrderedCollection new.
+    layerWidth := 200.
+    margin := 20.
+    segmentWidth := 6.
+    segmentHeight := 3.
+    baseX := x - 10.
+    
+    "Calcular espacio disponible y columnas"
+    availableWidth := layerWidth - (margin * 2).
+    columnsPerRow := availableWidth // (segmentWidth + 1).
+    
+    "Obtener el log del step"
+    logText := step log ifNil: [ 'No log available' ].
+    logSegments := self parseLogIntoSegments: logText.
+    
+    "Calcular dimensiones totales del grid"
+    totalRows := (logSegments size + columnsPerRow - 1) // columnsPerRow.
+    totalHeight := (totalRows * (segmentHeight + 1)) - 1.
+    
+    "SOLUCIÓN: Crear una caja contenedora invisible que represente todo el microprint"
+    containerBox := RSBox new
+        width: layerWidth;  "Ancho fijo del layer"
+        height: totalHeight + 20;  "Altura basada en las filas + padding"
+        color: Color transparent;  "Invisible"
+        borderColor: Color transparent;
+        yourself.
+    
+    "Posicionar el contenedor"
+    containerBox translateTo: (baseX + (layerWidth / 2)) @ (currentY + (totalHeight / 2) + 10).
+    
+    "Agregar el contenedor al canvas y a boxes (esto es lo que usa addLayerBorderForBoxes)"
+    canvas add: containerBox.
+    boxes add: containerBox.  "¡IMPORTANTE! Esto es lo que ve addLayerBorderForBoxes"
+    
+    "Crear elementos visuales del microprint DENTRO del contenedor"
+    logSegments doWithIndex: [ :segment :index |
+        | microprintElement color segmentX segmentY rowIndex colIndex |
+        
+        "Determinar color basado en el tipo de segmento"
+        color := (segment at: #isError) 
+            ifTrue: [ Color red ]
+            ifFalse: [ Color gray ].
+        
+        "Calcular posición en grid"
+        rowIndex := (index - 1) // columnsPerRow.
+        colIndex := (index - 1) \\ columnsPerRow.
+        
+        "Posición relativa al contenedor"
+        segmentX := baseX + margin + (colIndex * (segmentWidth + 1)) + (segmentWidth / 2).
+        segmentY := currentY + (rowIndex * (segmentHeight + 1)) + (segmentHeight / 2).
+        
+        "Crear rectángulo del microprint"
+        microprintElement := RSBox new
+            width: segmentWidth;
+            height: segmentHeight;
+            color: color;
+            borderColor: color darker;
+            borderWidth: 0.3;
+            yourself.
+        
+        "Posicionar elemento"
+        microprintElement translateTo: segmentX @ segmentY.
+        
+        "Agregar interactividad"
+        microprintElement when: RSMouseClick do: [ :evt |
+            self clearConnectionsByType: #microprintToDetail connections: connections canvas: canvas.
+            self openDetailedLogLayer: segment 
+                 step: step 
+                 onCanvas: canvas 
+                 atX: (x + layerWidth + (margin * 2))
+                 withSpacing: spacing
+                 layerBoxes: layerBoxes
+                 connections: connections
+                 parentBox: containerBox  "Usar el contenedor como parent"
+                 layerBorders: layerBorders
+                 segmentIndex: index ] for: self.
+        
+        "Popup con preview del segmento"
+        microprintElement @ (RSPopup text: [
+            'Log Segment ', index asString, ':', String cr,
+            'Type: ', ((segment at: #isError) ifTrue: ['ERROR'] ifFalse: ['INFO']), String cr,
+            'Preview: ', ((segment at: #text) truncateTo: 100), String cr,
+            'Click to view full content' ]).
+        
+        microprintElement @ RSHighlightable new.
+        microprintElement model: segment.
+        
+        canvas add: microprintElement.
+        microprintElements add: microprintElement.
+        "NO agregamos los elementos individuales a 'boxes' - solo el contenedor"
+    ].
+    
+    "Crear conexión desde parent step AL CONTENEDOR"
+    connection := self createConnection: parentBox to: containerBox
+                       connectionType: #stepToLog
+                       fromLayer: 4
+                       toLayer: 5.
+    canvas add: connection.
+    connections add: connection.
+    
+    layerBoxes at: 5 put: boxes.  "Solo contiene el containerBox"
+    
+    "Crear borde - ahora verá solo el containerBox con el ancho correcto"
+    self addLayerBorderForBoxes: canvas 
+         boxes: boxes 
+         atX: baseX 
+         layerName: 'Log Microprint' 
+         layerNumber: 5 
+         layerBorders: layerBorders.
 ]
 
 { #category : 'public' }
@@ -2415,6 +2558,7 @@ GHRunnerCollection >> createStepsLayer: steps onCanvas: canvas atX: x withBoxSpa
                      withBoxSpacing: spacing
                      layerBoxes: layerBoxes
                      selectedElements: selectedElements
+							layerSpacing: layerSpacing 
                      connections: connections
                      parentBox: evt shape
                      layerBorders: layerBorders.
@@ -3130,6 +3274,17 @@ GHRunnerCollection >> hotspotViewByActor [
 ]
 
 { #category : 'public' }
+GHRunnerCollection >> isErrorLine: line [
+    "Determinar si una línea de log representa un error"
+    | errorPatterns |
+    
+    errorPatterns := #('ERROR' 'FATAL' 'EXCEPTION' 'FAILED' 'FAIL:' 'Exception:' 'at java.' 'at com.' 'Caused by:' 'SQLException' 'NullPointerException' 'RuntimeException').
+    
+    ^ errorPatterns anySatisfy: [ :pattern |
+        line asUppercase includesSubstring: pattern asUppercase ]
+]
+
+{ #category : 'public' }
 GHRunnerCollection >> layerDesignView: workflowName [
     "Diseño por layers: Runs -> Attempts -> Jobs -> Steps"
     | canvas filteredRunners currentLayer layerBoxes layerPositions 
@@ -3291,6 +3446,248 @@ GHRunnerCollection >> loadRunnersFromDir: aDirPath [
     Transcript show: 'Total files processed: ', files size printString; cr.
     Transcript show: 'Runners loaded: ', runners size printString; cr.
     Transcript show: 'Runs discarded (no conclusion): ', discardedCount printString; cr.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> openDetailedLogLayer: segment step: step onCanvas: canvas atX: x withSpacing: spacing layerBoxes: layerBoxes connections: connections layerSpacing: layerSpacing parentBox: parentBox layerBorders: layerBorders segmentIndex: segmentIndex [
+    "Abrir una nueva layer a la derecha con el log detallado del segmento seleccionado"
+    | logText wrappedLines textElements connection currentY boxes layerWidth margin detailedSegments startIndex endIndex contextSegments infoElement  |
+    
+    "Limpiar layer 6 si existe"
+    self clearConnectionsFromLayer: 6 connections: connections canvas: canvas.
+    self clearLayersFrom: 6 layerBoxes: layerBoxes canvas: canvas layerBorders: layerBorders.
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    textElements := OrderedCollection new.
+    layerWidth := 500.
+    margin := 15.
+    
+    "Obtener el log completo y parsearlo"
+    logText := step log ifNil: [ 'No log available' ].
+    detailedSegments := self parseLogIntoSegments: logText.
+    
+    "Crear contexto alrededor del segmento seleccionado"
+    startIndex := (segmentIndex - 3) max: 1.
+    endIndex := (segmentIndex + 3) min: detailedSegments size.
+    contextSegments := detailedSegments copyFrom: startIndex to: endIndex.
+    
+    "Crear elementos de texto para cada segmento en contexto"
+    contextSegments doWithIndex: [ :contextSegment :index |
+        | textElement color actualIndex isSelected indicator  |
+        
+        actualIndex := startIndex + index - 1.
+        isSelected := actualIndex = segmentIndex.
+        
+        "Color basado en el tipo y si está seleccionado"
+        color := isSelected 
+            ifTrue: [ Color blue ]
+            ifFalse: [ (contextSegment at: #isError) ifTrue: [ Color red ] ifFalse: [ Color black ] ].
+        
+        "Crear elemento de texto"
+        textElement := RSLabel new
+            text: (contextSegment at: #text);
+            fontSize: (isSelected ifTrue: [ 10 ] ifFalse: [ 9 ]);
+            color: color;
+            yourself.
+        
+        "Aplicar formato especial al segmento seleccionado"
+        isSelected ifTrue: [
+            textElement bold.
+            "Agregar indicador visual"
+            indicator := RSBox new
+                width: (layerWidth - (margin * 2));
+                height: 15;
+                color: Color blue alpha: 0.1;
+                borderColor: Color blue;
+                borderWidth: 1;
+                yourself.
+            indicator translateTo: ((x - 10) + (layerWidth / 2)) @ currentY.
+            canvas add: indicator.
+            boxes add: indicator.
+        ].
+        
+        "Posicionar texto"
+        textElement translateTo: ((x - 10) + margin) @ currentY.
+        
+        "Popup con información del segmento"
+        textElement @ (RSPopup text: [
+            'Segment ', actualIndex asString, (isSelected ifTrue: [' (SELECTED)'] ifFalse: ['']), String cr,
+            'Type: ', ((contextSegment at: #isError) ifTrue: ['ERROR'] ifFalse: ['INFO']), String cr,
+            'Length: ', (contextSegment at: #text) size asString, ' chars', String cr,
+            'Full content above' ]).
+        
+        textElement @ RSHighlightable new.
+        textElement model: contextSegment.
+        
+        canvas add: textElement.
+        textElements add: textElement.
+        boxes add: textElement.
+        
+        currentY := currentY + (isSelected ifTrue: [ 20 ] ifFalse: [ 15 ]).
+    ].
+    
+    "Agregar información del segmento seleccionado al final"
+    currentY := currentY + 10.
+    infoElement := RSLabel new
+        text: ('Selected: Segment ', segmentIndex asString, String cr,
+               'Type: ', ((segment at: #isError) ifTrue: ['ERROR'] ifFalse: ['INFO']), String cr,
+               'Context: ±3 segments around selection');
+        fontSize: 8;
+        color: Color darkGray;
+        yourself.
+    
+    infoElement translateTo: ((x - 10) + margin) @ currentY.
+    canvas add: infoElement.
+    boxes add: infoElement.
+    
+    "Crear conexión desde microprint element"
+    textElements ifNotEmpty: [
+        connection := self createConnection: parentBox to: textElements first
+                           connectionType: #microprintToDetail
+                           fromLayer: 5
+                           toLayer: 6.
+        canvas add: connection.
+        connections add: connection.
+    ].
+    
+    layerBoxes at: 6 put: boxes.
+    
+    "Crear borde para este layer"
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: (x - 10) layerName: 'Log Detail' layerNumber: 6 layerBorders: layerBorders.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> openDetailedLogLayer: segment step: step onCanvas: canvas atX: x withSpacing: spacing layerBoxes: layerBoxes connections: connections parentBox: parentBox layerBorders: layerBorders segmentIndex: segmentIndex [
+    "Abrir una nueva layer a la derecha con el log detallado del segmento seleccionado"
+    | logText wrappedLines textElements connection currentY boxes layerWidth margin detailedSegments startIndex endIndex contextSegments infoElement  |
+    
+    "Limpiar layer 6 si existe"
+    self clearConnectionsFromLayer: 6 connections: connections canvas: canvas.
+    self clearLayersFrom: 6 layerBoxes: layerBoxes canvas: canvas layerBorders: layerBorders.
+    
+    currentY := 80.
+    boxes := OrderedCollection new.
+    textElements := OrderedCollection new.
+    layerWidth := 500.
+    margin := 15.
+    
+    "Obtener el log completo y parsearlo"
+    logText := step log ifNil: [ 'No log available' ].
+    detailedSegments := self parseLogIntoSegments: logText.
+    
+    "Crear contexto alrededor del segmento seleccionado"
+    startIndex := (segmentIndex - 3) max: 1.
+    endIndex := (segmentIndex + 3) min: detailedSegments size.
+    contextSegments := detailedSegments copyFrom: startIndex to: endIndex.
+    
+    "Crear elementos de texto para cada segmento en contexto"
+    contextSegments doWithIndex: [ :contextSegment :index |
+        | textElement color actualIndex isSelected indicator  |
+        
+        actualIndex := startIndex + index - 1.
+        isSelected := actualIndex = segmentIndex.
+        
+        "Color basado en el tipo y si está seleccionado"
+        color := isSelected 
+            ifTrue: [ Color blue ]
+            ifFalse: [ (contextSegment at: #isError) ifTrue: [ Color red ] ifFalse: [ Color black ] ].
+        
+        "Crear elemento de texto"
+        textElement := RSLabel new
+            text: (contextSegment at: #text);
+            fontSize: (isSelected ifTrue: [ 10 ] ifFalse: [ 9 ]);
+            color: color;
+            yourself.
+        
+        "Aplicar formato especial al segmento seleccionado"
+        isSelected ifTrue: [
+            textElement bold.
+            "Agregar indicador visual"
+            indicator := RSBox new
+                width: (layerWidth - (margin * 2));
+                height: 15;
+                borderColor: Color blue;
+                borderWidth: 1;
+                yourself.
+            indicator translateTo: ((x - 10) + (layerWidth / 2)) @ currentY.
+            canvas add: indicator.
+            boxes add: indicator.
+        ].
+        
+        "Posicionar texto"
+        textElement translateTo: ((x - 10) + margin + (textElement width / 2)) @ currentY.
+        
+        "Popup con información del segmento"
+        textElement @ (RSPopup text: [
+            'Segment ', actualIndex asString, (isSelected ifTrue: [' (SELECTED)'] ifFalse: ['']), String cr,
+            'Type: ', ((contextSegment at: #isError) ifTrue: ['ERROR'] ifFalse: ['INFO']), String cr,
+            'Length: ', (contextSegment at: #text) size asString, ' chars', String cr,
+            'Full content above' ]).
+        
+        textElement @ RSHighlightable new.
+        textElement model: contextSegment.
+        
+        canvas add: textElement.
+        textElements add: textElement.
+        boxes add: textElement.
+        
+        currentY := currentY + (isSelected ifTrue: [ 20 ] ifFalse: [ 15 ]).
+    ].
+    
+    "Agregar información del segmento seleccionado al final"
+    infoElement := RSLabel new
+        text: ('Selected: Segment ', segmentIndex asString, String cr,
+               'Type: ', ((segment at: #isError) ifTrue: ['ERROR'] ifFalse: ['INFO']), String cr,
+               'Context: ±3 segments around selection');
+        fontSize: 8;
+        color: Color darkGray;
+        yourself.
+    
+    infoElement translateTo: ((x - 10) + margin + (infoElement width / 2)) @ currentY.
+    canvas add: infoElement.
+    boxes add: infoElement.
+    
+    "Crear conexión desde microprint element"
+    textElements ifNotEmpty: [
+        connection := self createConnection: parentBox to: textElements first
+                           connectionType: #microprintToDetail
+                           fromLayer: 5
+                           toLayer: 6.
+        canvas add: connection.
+        connections add: connection.
+    ].
+    
+    layerBoxes at: 6 put: boxes.
+    
+    "Crear borde para este layer"
+    self addLayerBorderForBoxes: canvas boxes: boxes atX: (x - 10) layerName: 'Log Detail' layerNumber: 6 layerBorders: layerBorders.
+]
+
+{ #category : 'public' }
+GHRunnerCollection >> parseLogIntoSegments: logText [
+    "Parsear el log en segmentos clasificándolos por tipo"
+    | segments lines |
+    
+    segments := OrderedCollection new.
+    lines := logText lines.
+    
+    lines do: [ :line |
+        | segment isError |
+        
+        "Determinar si la línea es un error basándose en patrones comunes"
+        isError := self isErrorLine: line.
+        
+        "Crear objeto segmento"
+        segment := Dictionary new
+            at: #text put: line;
+            at: #isError put: isError;
+            yourself.
+        
+        segments add: segment.
+    ].
+    
+    ^ segments
 ]
 
 { #category : 'public' }
