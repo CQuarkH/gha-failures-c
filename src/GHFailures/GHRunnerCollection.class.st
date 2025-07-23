@@ -2098,11 +2098,12 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
 { #category : 'public' }
 GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacing: spacing layerBoxes: layerBoxes selectedElements: selectedElements layerSpacing: layerSpacing connections: connections parentBox: parentBox layerBorders: layerBorders [
     "Crear el layer de log como microprint visual - solo para steps con failure"
-    | logText logSegments microprintElements connection currentY boxes layerWidth margin segmentWidth segmentHeight availableWidth columnsPerRow baseX containerBox totalRows totalHeight |
+    | logText logSegments microprintElements connection currentY boxes layerWidth margin segmentWidth segmentHeight availableWidth columnsPerRow baseX containerBox totalRows totalHeight allElements |
     
     currentY := 80.
     boxes := OrderedCollection new.
     microprintElements := OrderedCollection new.
+    allElements := OrderedCollection new.  "NUEVO: colección para todos los elementos"
     layerWidth := 200.
     margin := 20.
     segmentWidth := 6.
@@ -2121,39 +2122,38 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
     totalRows := (logSegments size + columnsPerRow - 1) // columnsPerRow.
     totalHeight := (totalRows * (segmentHeight + 1)) - 1.
     
-    "SOLUCIÓN: Crear una caja contenedora invisible que represente todo el microprint"
+    "Crear una caja contenedora invisible que represente todo el microprint"
     containerBox := RSBox new
-        width: layerWidth;  "Ancho fijo del layer"
-        height: totalHeight + 20;  "Altura basada en las filas + padding"
-        color: Color transparent;  "Invisible"
+        width: layerWidth;
+        height: totalHeight + 20;
+        color: Color transparent;
         borderColor: Color transparent;
         yourself.
     
     "Posicionar el contenedor"
     containerBox translateTo: (baseX + (layerWidth / 2)) @ (currentY + (totalHeight / 2) + 10).
     
-    "Agregar el contenedor al canvas y a boxes (esto es lo que usa addLayerBorderForBoxes)"
-    canvas add: containerBox.
-    boxes add: containerBox.  "¡IMPORTANTE! Esto es lo que ve addLayerBorderForBoxes"
+    "IMPORTANTE: Almacenar referencia a elementos del microprint en el contenedor"
+    containerBox propertyAt: #microprintElements put: OrderedCollection new.
     
-    "Crear elementos visuales del microprint DENTRO del contenedor"
+    canvas add: containerBox.
+    boxes add: containerBox.
+    allElements add: containerBox.  "NUEVO: agregar a la colección general"
+    
+    "Crear elementos visuales del microprint"
     logSegments doWithIndex: [ :segment :index |
         | microprintElement color segmentX segmentY rowIndex colIndex |
         
-        "Determinar color basado en el tipo de segmento"
         color := (segment at: #isError) 
             ifTrue: [ Color red ]
             ifFalse: [ Color gray ].
         
-        "Calcular posición en grid"
         rowIndex := (index - 1) // columnsPerRow.
         colIndex := (index - 1) \\ columnsPerRow.
         
-        "Posición relativa al contenedor"
         segmentX := baseX + margin + (colIndex * (segmentWidth + 1)) + (segmentWidth / 2).
         segmentY := currentY + (rowIndex * (segmentHeight + 1)) + (segmentHeight / 2).
         
-        "Crear rectángulo del microprint"
         microprintElement := RSBox new
             width: segmentWidth;
             height: segmentHeight;
@@ -2162,10 +2162,8 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
             borderWidth: 0.3;
             yourself.
         
-        "Posicionar elemento"
         microprintElement translateTo: segmentX @ segmentY.
         
-        "Agregar interactividad"
         microprintElement when: RSMouseClick do: [ :evt |
             self clearConnectionsByType: #microprintToDetail connections: connections canvas: canvas.
             self openDetailedLogLayer: segment 
@@ -2175,11 +2173,10 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
                  withSpacing: spacing
                  layerBoxes: layerBoxes
                  connections: connections
-                 parentBox: containerBox  "Usar el contenedor como parent"
+                 parentBox: containerBox
                  layerBorders: layerBorders
                  segmentIndex: index ] for: self.
         
-        "Popup con preview del segmento"
         microprintElement @ (RSPopup text: [
             'Log Segment ', index asString, ':', String cr,
             'Type: ', ((segment at: #isError) ifTrue: ['ERROR'] ifFalse: ['INFO']), String cr,
@@ -2190,11 +2187,13 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
         microprintElement model: segment.
         
         canvas add: microprintElement.
-        microprintElements add: microprintElement.
-        "NO agregamos los elementos individuales a 'boxes' - solo el contenedor"
+        
+        "NUEVO: Registrar elemento en el contenedor para limpieza posterior"
+        (containerBox propertyAt: #microprintElements) add: microprintElement.
+        allElements add: microprintElement.  "NUEVO: agregar a la colección general"
     ].
     
-    "Crear conexión desde parent step AL CONTENEDOR"
+    "Crear conexión desde parent step"
     connection := self createConnection: parentBox to: containerBox
                        connectionType: #stepToLog
                        fromLayer: 4
@@ -2202,9 +2201,9 @@ GHRunnerCollection >> createLogLayer: step onCanvas: canvas atX: x withBoxSpacin
     canvas add: connection.
     connections add: connection.
     
-    layerBoxes at: 5 put: boxes.  "Solo contiene el containerBox"
+    layerBoxes at: 5 put: allElements.  "CAMBIO: almacenar TODOS los elementos"
     
-    "Crear borde - ahora verá solo el containerBox con el ancho correcto"
+    "Crear borde"
     self addLayerBorderForBoxes: canvas 
          boxes: boxes 
          atX: baseX 
@@ -2566,6 +2565,7 @@ GHRunnerCollection >> createStepsLayer: steps onCanvas: canvas atX: x withBoxSpa
                 "Si no es failure, solo limpiar layers superiores"
                 self clearConnectionsFromLayer: 5 connections: connections canvas: canvas.
                 self clearLayersFrom: 5 layerBoxes: layerBoxes canvas: canvas layerBorders: layerBorders.
+					self clearConnectionsByType: #stepToLog connections: connections canvas: canvas.
                 self highlightSelected: evt shape selectedElements: selectedElements layer: 4.
             ].
         ] for: self.
