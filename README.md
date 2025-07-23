@@ -16,4 +16,5 @@ ghRunnersCollection := GHRunnerCollection new.
 ghRunnersCollection loadRunnersFromDir: 'RUNS_DIR' . 
 
 ghRunnersCollection layerDesignView: 'build-and-deploy'.
+ghRunnersCollection polymetricViewByWorkflowsJobsXTimeY .
 ```
